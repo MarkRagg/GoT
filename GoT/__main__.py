@@ -1,0 +1,3 @@
+import GoT
+
+GoT.main()
