@@ -1,0 +1,67 @@
+name: deploy
+on:
+  workflow_call:
+  workflow_dispatch:
+permissions:
+  contents: write
+  packages: write
+jobs:
+  release:
+    name: Release
+    concurrency:
+      # Only one release job at a time. Strictly sequential.
+      group: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # all history
+
+      - name: Get All Tags
+        run: git fetch --tags -f
+
+      - name: Dry-run Release for Initial Commit
+        id: skip_release
+        run: |
+          if git rev-parse HEAD^1 >/dev/null 2>&1; then
+            echo "skip=false" >> $GITHUB_OUTPUT
+          else
+            echo "skip=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get Python Version
+        id: get-python-version
+        run: echo version=$(python setup.py get_minimum_python_version | tail -n 1) >> $GITHUB_OUTPUT
+
+      - name: Install Poetry
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+
+      - name: Restore Development Environment
+        run: poetry install
+
+      # Uncomment to change default logging level during release
+      # - name: Change default logging level
+      #   run: sed -i -e 's/logging.DEBUG/logging.WARN/g' **/*/__init__.py
+
+      - name: Get Node Version
+        id: get-node-version
+        run: echo version=$(jq -r .engines.node package.json) >> $GITHUB_OUTPUT
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ steps.get-node-version.outputs.version }}
+
+      - name: Release
+        shell: bash
+        run: |
+          npm install
+          npx semantic-release
+        env:
+          PYPI_TOKEN: ${{ secrets.PYPI_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          RELEASE_TEST_PYPI: ${{ github.event.repository.is_template || contains(github.repository, 'template') }}
+          # dry run if not on main/master branch, or if initial commit
+          RELEASE_DRY_RUN: ${{ steps.skip_release.outputs.skip == 'true' || (github.ref_name != 'master' && github.ref_name != 'main') }}

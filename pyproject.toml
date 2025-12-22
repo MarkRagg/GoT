@@ -1,0 +1,42 @@
+[tool.poetry]
+name = "template-python-project-poetry"
+packages = [
+    { include = "my_project" },
+]
+version = "2.4.1"
+description = "A template for Python projects, using Poetry"
+authors = ["Giovanni Ciatto <giovanni.ciatto@unibo.it>"]
+license = "Apache 2.0"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+# update the Python versions in .github/workflows/check.yml if you change this
+python = ">= 3.9.0 < 4.0.0"
+
+[tool.poetry.group.dev.dependencies]
+coverage = "^7.4.0"
+mypy = "^1.10.1"
+poethepoet = "^0.37.0"
+poetry = "^1.8.3"
+pytest = "^8.3.5"
+ruff = "^0.14.8"
+
+[tool.poe.tasks]
+test = "pytest"
+coverage = "coverage run -m pytest"
+coverage-report = "coverage report -m"
+coverage-html = "coverage html"
+ruff-check = "ruff check"
+ruff-fix = "ruff check --fix"
+format = "ruff format"
+format-check = "ruff format --check"
+mypy = "mypy my_project tests"
+compile = "python -m compileall my_project tests"
+static-checks = [
+    "ruff-check",
+    "mypy",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
