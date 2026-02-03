@@ -1,5 +1,7 @@
 import logging
 
+from GoT.ollama_llm import OllamaLLM
+from GoT.graph_model import invoke_graph
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("GoT")
@@ -12,13 +14,13 @@ class MyClass:
     def my_method(self):
         return "Hello World"
 
-
 def main():
     # this is the main module of your app
     # it is only required if your project must be runnable
     # this is the script to be executed whenever some users writes `python -m GoT` on the command line, eg.
-    x = MyClass().my_method()
-    print(x)
+    # x = MyClass().my_method()
+    # print(x)
+    res = invoke_graph()
 
 
 # let this be the last line of this file
