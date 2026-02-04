@@ -2,6 +2,8 @@ from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
 from langchain.agents import create_agent
 
+from GoT.tools.math_tool import summing, minus, square_root, daytime
+
 class OllamaLLM:
     def __init__(self):
         self.ollamaLLM = ChatOpenAI(
@@ -17,7 +19,7 @@ class OllamaLLM:
 
         self.agent = create_agent(
             model=self.ollamaLLM,
-            tools=[],
+            tools=[summing, minus, square_root, daytime],
             system_prompt=self.system_prompt,
         )
 
