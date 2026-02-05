@@ -46,7 +46,7 @@ class RuntimeGraph:
 
     def call_tool_node(self) -> RuntimeNode:
         nodes = list(self.nodes.keys())
-        call_nodes = [n for n in nodes if n.type.startswith("call_tool")]
+        call_nodes = [n for n in nodes if (n.type.startswith("call_tool") and not n.resolved)]
         return call_nodes[0] if call_nodes else None
     
     def runtime_node_to_state(self, node: RuntimeNode) -> MessagesState:
