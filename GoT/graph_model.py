@@ -1,3 +1,4 @@
+import re
 from venv import logger
 
 from dotenv import load_dotenv
@@ -6,12 +7,21 @@ from langgraph.graph import StateGraph, MessagesState, START, END
 
 from GoT.ollama_llm import OllamaLLM
 from GoT.runtime_graph import RuntimeGraph, RuntimeNode
-from GoT.utils import parse_response
+from GoT.utils import parse_response, parse_tool_list, remove_tools_from_list
 
 load_dotenv()
 
-# Defining LLM
-agent = OllamaLLM().agent
+# Defining agents
+starting_agent = OllamaLLM().create_custom_agent(OllamaLLM().get_tools(), 
+                "You are an assistant specialized in tools. Your goal is not to resolve the problem," \
+                " only to make list with the best tool to use. " \
+                "The list MUST be in this format and it is not possible to format the tool_name in any way: " \
+                "- tool_name " \
+                "- tool_name " \
+                "- tool_name ")
+
+chat_completition_agent = OllamaLLM().create_custom_agent([])
+
 # Defining runtime graph
 runtime_graph = RuntimeGraph("")
 
@@ -26,11 +36,9 @@ def tool_expand(goal: MessagesState):
         HumanMessage(msg),
         SystemMessage(sys_msg),
     ]
-    res = agent.invoke({"messages": messages})
+    res = starting_agent.invoke({"messages": messages})
     str_res = parse_response(res)
-    # print("[INFO]: " + str_res)
-    tool_list = [p.strip() for p in str_res.split("-", 3) if p.strip()] # Toglie elementi inutili
-
+    tool_list = parse_tool_list(str_res) # Toglie elementi inutili
     # add tool nodes in the runtime graph
     for tool in tool_list:
         tool_node = RuntimeNode(SystemMessage(sys_msg), AIMessage(tool), type="tool", resolved = True)
@@ -38,7 +46,7 @@ def tool_expand(goal: MessagesState):
         runtime_graph.add_node(tool_node)
         runtime_graph.add_node(call_node)
         runtime_graph.add_edge(tool_node, call_node)
-
+        runtime_graph.add_tool_link(call_node, tool)
     # extract a tool to call
     runtime_graph.temp_node = runtime_graph.call_tool_node()
     return runtime_graph.runtime_node_to_state(runtime_graph.temp_node)
@@ -46,7 +54,10 @@ def tool_expand(goal: MessagesState):
 def tool_call(messages: MessagesState):  
     # It calls the llm and it resolves the call node 
     call_node = runtime_graph.temp_node
-    res = parse_response(agent.invoke(messages))
+    tool_agent = OllamaLLM().create_custom_agent(remove_tools_from_list(OllamaLLM().get_tools(), runtime_graph.get_resolved_tools()), 
+                            "You are an assistant specialized in tools. Your goal is to resolve the problem with " \
+                            " the tool that the user indicates to you.")
+    res = parse_response(tool_agent.invoke(messages))
     runtime_graph.resolve_node(call_node, AIMessage(res))
 
     # Add test node
@@ -54,7 +65,7 @@ def tool_call(messages: MessagesState):
     runtime_graph.add_node(test_node)
     runtime_graph.add_edge(call_node, test_node)
     runtime_graph.temp_node = test_node
-    return runtime_graph.runtime_node_to_state(test_node)
+    return messages
     
 def test_result(result_msg: MessagesState): # TODO: Pensare ad un modo per testare
     res = parse_response(result_msg)
@@ -75,10 +86,9 @@ def backtrack(messages: MessagesState):
     return runtime_graph.runtime_node_to_state(runtime_graph.temp_node)
 
 def chat_completition(messages: MessagesState):
-    chat_agent = OllamaLLM().create_custom_agent([])
     new_messages_history = runtime_graph.goal
     new_messages_history["messages"].append(runtime_graph.temp_node.prompt)
-    res = chat_agent.invoke(new_messages_history)
+    chat_completition_agent.invoke(new_messages_history)
     return new_messages_history
 
 # https://docs.langchain.com/oss/python/langgraph/overview

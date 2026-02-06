@@ -9,6 +9,11 @@ mlflow.set_experiment("marcoraggini-experiment")
 mlflow.openai.autolog()
 mlflow.langchain.autolog()
 
+SYSTEM_PROMPT_GENERAL = """
+                You are a helpful assistant able to address general problems. 
+                ...
+            """
+
 class OllamaLLM:
     def __init__(self):
         with mlflow.set_active_model(name="ollama-agent-ministral-3"):
@@ -18,10 +23,7 @@ class OllamaLLM:
                 model="ministral-3:8b",
             )
 
-            self.system_prompt = SystemMessage("""
-                You are a helpful assistant able to address general problems. 
-                ...
-            """)
+            self.system_prompt = SystemMessage(SYSTEM_PROMPT_GENERAL)
 
             self.agent = create_agent(
                 model=self.ollamaLLM,
@@ -29,9 +31,12 @@ class OllamaLLM:
                 system_prompt=self.system_prompt,
             )
 
-    def create_custom_agent(self, tools):
+    def get_tools(self):
+        return [sum_four, summing, minus, sum_three, square_root]
+
+    def create_custom_agent(self, tools, system_prompt: SystemMessage = SystemMessage(SYSTEM_PROMPT_GENERAL)):
        return create_agent(
                 model=self.ollamaLLM,
                 tools=tools,
-                system_prompt=self.system_prompt,
+                system_prompt=system_prompt,
             )

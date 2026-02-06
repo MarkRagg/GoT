@@ -4,7 +4,6 @@ from langchain.tools import tool
 @tool
 def summing(x: int, y: int) -> int: 
     """sum of two integer"""
-    print(f"[TOOL CALLED] summing({x}, {y})")
     return x + y
 
 @tool
