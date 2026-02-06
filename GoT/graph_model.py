@@ -21,7 +21,7 @@ def goal(prompt: MessagesState):
 
 def tool_expand(goal: MessagesState):
     msg = parse_response(goal)
-    sys_msg = "Which tools that I have can I use to solve this problem? Please make a list using '-' to denote each tool, don't use this character for other reasons."
+    sys_msg = "Which tools that I have can I use to solve this problem? Please make a list using '-' to denote each tool in a probabilistic order, don't use this character for other reasons."
     messages = [
         HumanMessage(msg),
         SystemMessage(sys_msg),
@@ -58,14 +58,28 @@ def tool_call(messages: MessagesState):
     
 def test_result(result_msg: MessagesState): # TODO: Pensare ad un modo per testare
     res = parse_response(result_msg)
-    if len(res) > 0:
+    n = runtime_graph.call_tool_node()
+
+    if len(res) > 0 and n is not None:
         return "backtrack"
+    elif n is None:
+        chat_completition_node = RuntimeNode(SystemMessage("Please, solve this problem"), AIMessage(""), type="chat_completition")
+        runtime_graph.add_node(chat_completition_node)
+        runtime_graph.temp_node = chat_completition_node
+        return "chat_completition"
     else:
         return END
 
 def backtrack(messages: MessagesState):
     runtime_graph.temp_node = runtime_graph.call_tool_node()
     return runtime_graph.runtime_node_to_state(runtime_graph.temp_node)
+
+def chat_completition(messages: MessagesState):
+    chat_agent = OllamaLLM().create_custom_agent([])
+    new_messages_history = runtime_graph.goal
+    new_messages_history["messages"].append(runtime_graph.temp_node.prompt)
+    res = chat_agent.invoke(new_messages_history)
+    return new_messages_history
 
 # https://docs.langchain.com/oss/python/langgraph/overview
 
@@ -75,11 +89,13 @@ def invoke_graph():
     graph.add_node(tool_expand)
     graph.add_node(tool_call)
     graph.add_node(backtrack)
+    graph.add_node(chat_completition)
     graph.add_edge(START, "goal")
     graph.add_edge("goal", "tool_expand")
     graph.add_edge("tool_expand", "tool_call")
     graph.add_conditional_edges("tool_call", test_result)
     graph.add_edge("backtrack", "tool_call")
+    graph.add_edge("chat_completition", END)
 
     graph = graph.compile()
 

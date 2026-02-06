@@ -1,6 +1,5 @@
-from typing import List
 from langgraph.graph import MessagesState
-from langchain_core.messages import AIMessage, SystemMessage, HumanMessage
+from langchain_core.messages import AIMessage, SystemMessage
 
 from GoT.utils import parse_response
 
@@ -52,7 +51,7 @@ class RuntimeGraph:
     def runtime_node_to_state(self, node: RuntimeNode) -> MessagesState:
         messages = []
 
-        messages.append(HumanMessage(self.goal["messages"][-1].content))
+        # messages.append(HumanMessage(self.goal["messages"][-1].content))
 
         if node.prompt:
             messages.append(node.prompt)

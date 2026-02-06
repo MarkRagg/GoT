@@ -1,5 +1,5 @@
 from langchain_openai import ChatOpenAI
-from langchain_core.messages import SystemMessage, HumanMessage
+from langchain_core.messages import SystemMessage
 from langchain.agents import create_agent
 import mlflow
 
@@ -26,5 +26,12 @@ class OllamaLLM:
             self.agent = create_agent(
                 model=self.ollamaLLM,
                 tools=[sum_four, summing, minus, sum_three, square_root],
+                system_prompt=self.system_prompt,
+            )
+
+    def create_custom_agent(self, tools):
+       return create_agent(
+                model=self.ollamaLLM,
+                tools=tools,
                 system_prompt=self.system_prompt,
             )
