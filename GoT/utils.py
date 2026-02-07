@@ -1,3 +1,5 @@
+import re
+
 def parse_response(res) -> str:
     """
     Parse the LLm response using agent.invoke
@@ -6,9 +8,6 @@ def parse_response(res) -> str:
     :return: The response in string 
     """
     return res["messages"][-1].content
-
-import re
-
 
 def parse_tool_list(response: str) -> list[str]:
     """
@@ -35,7 +34,6 @@ def parse_tool_list(response: str) -> list[str]:
                 tool_list.append(tool_name)
     
     return tool_list
-
 
 def parse_score(response: str) -> int:
     """

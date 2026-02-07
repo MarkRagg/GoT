@@ -2,8 +2,6 @@ from typing import Dict, List
 from langgraph.graph import MessagesState
 from langchain_core.messages import AIMessage, SystemMessage
 
-from GoT.utils import parse_response
-
 class RuntimeNode:
     _id_counter = 0  # Contatore globale per ID unici
     
