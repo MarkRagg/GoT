@@ -9,7 +9,7 @@ class RuntimeNode:
     
     def __init__(self, prompt: SystemMessage, response: AIMessage, type: str, resolved: bool = False):
         self.id = RuntimeNode._id_counter  # ID unico per ogni nodo
-        RuntimeNode._id_counter += 1
+        RuntimeNode._id_counter += 1    
         self.prompt = prompt
         self.response = response
         self.type = type
@@ -26,6 +26,10 @@ class RuntimeNode:
     def __repr__(self):
         return f"RuntimeNode(id={self.id}, type={self.type}, resolved={self.resolved})"
 
+class TestNode(RuntimeNode):
+    def __init__(self, prompt: SystemMessage, response: AIMessage, type: str, score: int, resolved: bool = False):
+        super().__init__(prompt, response, type, resolved)
+        self.score = score
 
 class RuntimeGraph:
     def __init__(self, goal: MessagesState):
