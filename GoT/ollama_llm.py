@@ -14,6 +14,7 @@ SYSTEM_PROMPT_GENERAL = """
                 ...
             """
 
+
 class OllamaLLM:
     def __init__(self):
         with mlflow.set_active_model(name="ollama-agent-ministral-3"):
@@ -34,9 +35,11 @@ class OllamaLLM:
     def get_tools(self):
         return [sum_four, summing, minus, sum_three, square_root]
 
-    def create_custom_agent(self, tools, system_prompt: SystemMessage = SystemMessage(SYSTEM_PROMPT_GENERAL)):
-       return create_agent(
-                model=self.ollamaLLM,
-                tools=tools,
-                system_prompt=system_prompt,
-            )
+    def create_custom_agent(
+        self, tools, system_prompt: SystemMessage = SystemMessage(SYSTEM_PROMPT_GENERAL)
+    ):
+        return create_agent(
+            model=self.ollamaLLM,
+            tools=tools,
+            system_prompt=system_prompt,
+        )

@@ -13,6 +13,7 @@ class MyClass:
     def my_method(self):
         return "Hello World"
 
+
 def main():
     # this is the main module of your app
     # it is only required if your project must be runnable
