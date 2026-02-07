@@ -10,17 +10,17 @@ load_dotenv()
 
 # Defining agents
 starting_agent = OllamaLLM().create_custom_agent(OllamaLLM().get_tools(), 
-                "You are an assistant specialized in tools. Your goal is not to resolve the problem," \
+                SystemMessage("You are an assistant specialized in tools. Your goal is not to resolve the problem," \
                 " only to make list with the best tool to use. " \
                 "The list MUST be in this format and it is not possible to format the tool_name in any way: " \
                 "- tool_name " \
                 "- tool_name " \
-                "- tool_name ")
+                "- tool_name "))
 
 chat_completition_agent = OllamaLLM().create_custom_agent([])
 
 judge_agent = OllamaLLM().create_custom_agent([], 
-                "You are an assistant specialized in validation of response, like an LLM-as-a-judge. " \
+                SystemMessage("You are an assistant specialized in validation of response, like an LLM-as-a-judge. " \
                 "Your duty is to score, from 0 to 6, the response that user gives to you and assign to it a score. " \
                 "Your response MUST be a description of the score and then the" \
                 "output format should be: " \
@@ -31,10 +31,10 @@ judge_agent = OllamaLLM().create_custom_agent([],
                 "3: The response try to resolve the problem but doesn't follow the instruction or the response is wrong. " \
                 "4: The response follow the instruction but the result is wrong or the result is correct but doesn't follow the instruction. " \
                 "5: The response follow the instruction and the result is near to the solution (If the task is hard, the solution should be near to the corrected one). " \
-                "6: The response follow the instruction and the result is perfectly correct.")
+                "6: The response follow the instruction and the result is perfectly correct."))
 
 # Defining runtime graph
-runtime_graph = RuntimeGraph("")
+runtime_graph = RuntimeGraph()
 
 def goal(prompt: MessagesState): 
     runtime_graph.goal = prompt
@@ -66,8 +66,8 @@ def tool_call(messages: MessagesState):
     # It calls the llm and it resolves the call node 
     call_node = runtime_graph.temp_node
     tool_agent = OllamaLLM().create_custom_agent(remove_tools_from_list(OllamaLLM().get_tools(), runtime_graph.get_resolved_tools()), 
-                            "You are an assistant specialized in tools. Your goal is to resolve the problem with " \
-                            " the tool that the user indicates to you. You MUST use the tool that user indicates to you. ")
+                            SystemMessage("You are an assistant specialized in tools. Your goal is to resolve the problem with " \
+                            " the tool that the user indicates to you. You MUST use the tool that user indicates to you. "))
     res = parse_response(tool_agent.invoke(messages))
     runtime_graph.resolve_node(call_node, AIMessage(res))
 
@@ -79,10 +79,12 @@ def tool_call(messages: MessagesState):
     return runtime_graph.runtime_node_to_state(runtime_graph.temp_node)
     
 def test_result(result_msg: MessagesState): # TODO: Pensare ad un modo per testare
-    n = runtime_graph.call_tool_node()
+    n = runtime_graph.exist_tool_available()
     
     # Get the actual tool execution result from the resolved call_node
     test_node = runtime_graph.temp_node
+    if not isinstance(test_node, TestNode):
+        raise TypeError("Expected TestNode for scoring")
     call_node_response = test_node.prompt.content  # The actual solution to judge
     
     # Create a proper message for the judge with the solution
@@ -95,9 +97,9 @@ def test_result(result_msg: MessagesState): # TODO: Pensare ad un modo per testa
     test_node.score = parse_score(score_res)
     runtime_graph.resolve_node(test_node, AIMessage(score_res))
 
-    if test_node.score < 5 and n is not None:
+    if test_node.score < 5 and n is True:
         return "backtrack"
-    elif n is None:
+    elif n is False:
         chat_completition_node = RuntimeNode(SystemMessage("Please, solve this problem"), AIMessage(""), type="chat_completition")
         runtime_graph.add_node(chat_completition_node)
         runtime_graph.temp_node = chat_completition_node

@@ -1,6 +1,6 @@
 from typing import Dict, List
 from langgraph.graph import MessagesState
-from langchain_core.messages import AIMessage, SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage, AnyMessage
 
 class RuntimeNode:
     _id_counter = 0  # Contatore globale per ID unici
@@ -30,11 +30,11 @@ class TestNode(RuntimeNode):
         self.score = score
 
 class RuntimeGraph:
-    def __init__(self, goal: MessagesState):
-        self.goal = goal
+    def __init__(self):
+        self.goal: MessagesState = MessagesState(messages=[])
         self.nodes: Dict[RuntimeNode, List[RuntimeNode]] = {}
         self.tools_available: Dict[RuntimeNode, str] = {}
-        self.temp_node = None
+        self.temp_node: RuntimeNode = RuntimeNode(SystemMessage(""), AIMessage(""), type="goal")
 
     def add_node(self, node: RuntimeNode): 
         self.nodes.setdefault(node, [])
@@ -53,14 +53,19 @@ class RuntimeGraph:
     def call_tool_node(self) -> RuntimeNode: # TODO change name
         nodes = list(self.nodes.keys())
         call_nodes = [n for n in nodes if (n.type.startswith("call_tool") and not n.resolved)]
-        return call_nodes[0] if call_nodes else None
+        return call_nodes[0]
     
+    def exist_tool_available(self) -> bool:
+        nodes = list(self.nodes.keys())
+        call_nodes = [n for n in nodes if (n.type.startswith("call_tool") and not n.resolved)]
+        return True if call_nodes else False
+
     def get_resolved_tools(self):
         resolved_nodes = [t for t in self.tools_available.keys() if t.resolved is True]
         return [self.tools_available[n] for n in resolved_nodes]
 
     def runtime_node_to_state(self, node: RuntimeNode) -> MessagesState: # TODO change name
-        messages = []
+        messages: list[AnyMessage] = []
 
         if node.prompt:
             messages.append(node.prompt)
