@@ -127,6 +127,7 @@ def test_result(result_msg: MessagesState):  # TODO: Pensare ad un modo per test
 
     # Create a proper message for the judge with the solution
     judge_messages = [
+        HumanMessage(content=parse_response(runtime_graph.goal)),
         HumanMessage(content=call_node_response),
         SystemMessage(
             content="Score this solution based on correctness and following instructions. Remember that you can't verify the usage of the tools."
@@ -167,7 +168,7 @@ def chat_completition(messages: MessagesState):
 # https://docs.langchain.com/oss/python/langgraph/overview
 
 
-def invoke_graph():
+def invoke_graph(content: str):
     graph = StateGraph(MessagesState)
     graph.add_node(goal)
     graph.add_node(tool_expand)
@@ -184,7 +185,7 @@ def invoke_graph():
     graph = graph.compile()
 
     res = graph.invoke(
-        {"messages": [{"role": "user", "content": "Solve 100 + 100 + 200 + 400"}]}
+        {"messages": [{"role": "user", "content": content}]}
     )
 
     # logger.info(res)
