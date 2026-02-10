@@ -3,10 +3,9 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, MessagesState, START, END
 
 from GoT.model.ollama_llm import OllamaLLM
-from GoT.model.runtime_graph import RuntimeGraph, RuntimeNode, TestNode
+from GoT.model.runtime_graph import RuntimeGraph, RuntimeNode, Score, TestNode
 from GoT.model.utils.utils import (
     parse_response,
-    parse_score,
     parse_tool_list,
     remove_tools_from_list,
 )
@@ -44,6 +43,7 @@ judge_agent = OllamaLLM().create_custom_agent(
         "5: The response follow the instruction and the result is near to the solution (If the task is hard, the solution should be near to the corrected one). "
         "6: The response follow the instruction and the result is perfectly correct."
     ),
+    response_format=Score
 )
 
 # Defining runtime graph
@@ -134,9 +134,9 @@ def test_result(result_msg: MessagesState):
         ),
     ]
 
-    score_res = parse_response(judge_agent.invoke({"messages": judge_messages}))
-    test_node.score = parse_score(score_res)
-    runtime_graph.resolve_node(test_node, AIMessage(score_res))
+    score_res = judge_agent.invoke({"messages": judge_messages})["structured_response"]
+    test_node.score = score_res.score
+    runtime_graph.resolve_node(test_node, AIMessage(score_res.description))
 
     if test_node.score < 5 and n is True:
         return "backtrack"

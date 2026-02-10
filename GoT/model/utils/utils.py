@@ -1,5 +1,8 @@
 import re
 
+from GoT.model.runtime_graph import Score
+from langgraph.graph import MessagesState
+
 
 def parse_response(res) -> str:
     """
@@ -38,7 +41,7 @@ def parse_tool_list(response: str) -> list[str]:
     return tool_list
 
 
-def parse_score(response: str) -> int:
+def parse_score(response: MessagesState) -> Score:
     """
     Parse LLM response to get the score in a format like Score: number
 
@@ -47,13 +50,7 @@ def parse_score(response: str) -> int:
     :return: The score
     :rtype: int
     """
-    # Look for pattern like "Score: <number>"
-    match = re.search(r"Score:\s*(\d+)", response, re.IGNORECASE)
-
-    if match:
-        return int(match.group(1))
-
-    raise ValueError(f"Could not find score in response: {response}")
+    return response["structured_response"]
 
 
 def remove_tools_from_list(tool_list, tools_to_remove):
