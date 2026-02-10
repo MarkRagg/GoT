@@ -1,6 +1,7 @@
 from typing import Dict, List
 from langgraph.graph import MessagesState
 from langchain_core.messages import AIMessage, SystemMessage, AnyMessage
+from pydantic import BaseModel
 
 
 class RuntimeNode:
@@ -44,6 +45,15 @@ class TestNode(RuntimeNode):
         super().__init__(prompt, response, type, resolved)
         self.score = score
 
+class Score(BaseModel):
+    """ Rapresents a score for a test node. 
+
+    Attributes:
+        score: int - The score assigned to the test node.
+        description: str - A description or rationale for the assigned score.
+    """
+    score: int 
+    description: str
 
 class RuntimeGraph:
     def __init__(self):
