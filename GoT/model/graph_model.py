@@ -2,9 +2,9 @@ from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, MessagesState, START, END
 
-from GoT.ollama_llm import OllamaLLM
-from GoT.runtime_graph import RuntimeGraph, RuntimeNode, TestNode
-from GoT.utils import (
+from GoT.model.ollama_llm import OllamaLLM
+from GoT.model.runtime_graph import RuntimeGraph, RuntimeNode, TestNode
+from GoT.model.utils.utils import (
     parse_response,
     parse_score,
     parse_tool_list,
@@ -113,10 +113,10 @@ def tool_call(messages: MessagesState):
     runtime_graph.add_node(test_node)
     runtime_graph.add_edge(call_node, test_node)
     runtime_graph.temp_node = test_node
-    return runtime_graph.runtime_node_to_state(runtime_graph.temp_node)
+    return messages["messages"].append(AIMessage(res))
 
 
-def test_result(result_msg: MessagesState):  # TODO: Pensare ad un modo per testare
+def test_result(result_msg: MessagesState):
     n = runtime_graph.exist_tool_available()
 
     # Get the actual tool execution result from the resolved call_node
