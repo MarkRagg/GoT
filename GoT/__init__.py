@@ -1,27 +1,37 @@
+import json
 import logging
 
-from GoT.graph_model import invoke_graph
+from lm_eval import evaluator, tasks
+from GoT.model.lm_wrapper import LangGraphLMWrapper, LangGraphBigBenchWrapper
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("GoT")
 
-
-# this is the initial module of your app
-# this is executed whenever some client-code is calling `import GoT` or `from GoT import ...`
-# put your main classes here, eg:
-class MyClass:
-    def my_method(self):
-        return "Hello World"
-
-
 def main():
-    # this is the main module of your app
-    # it is only required if your project must be runnable
-    # this is the script to be executed whenever some users writes `python -m GoT` on the command line, eg.
-    # x = MyClass().my_method()
-    # print(x)
-    invoke_graph()
+    # tm = tasks.TaskManager()
+    # all_tasks = tm.all_tasks
 
+    # # Filtra solo i task di bigbench
+    # bigbench_tasks = [t for t in all_tasks if 'bigbench' in t.lower()]
+
+    # print("Task di BigBench disponibili:")
+    # for task in sorted(bigbench_tasks):
+    #     print(f"  - {task}")
+    task_list = ["bigbench_arithmetic_generate_until"]
+    lm = LangGraphBigBenchWrapper()
+    task_dict = tasks.get_task_dict(task_list)
+
+    results = evaluator.evaluate(
+        lm=lm,
+        task_dict=task_dict,
+        limit=1, # Limit to 3 samples for quick testing
+        log_samples=True, 
+        verbosity="INFO" 
+    )
+
+    # --- Salva in JSON ---
+    with open("graph_benchmark_results.json", "w") as f:
+        json.dump(results, f, indent=2)
 
 # let this be the last line of this file
 logger.info("GoT loaded")
