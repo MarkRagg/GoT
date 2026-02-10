@@ -61,5 +61,25 @@ def remove_tools_from_list(tool_list, tools_to_remove):
     :param tools_to_remove: list of string representing the names of the tools
     """
     result = [tool for tool in tool_list if tool.func.__name__ not in tools_to_remove]
-    print(result)
     return result
+
+def extract_output(result) -> str:
+    """
+    Extracts the output from the result of invoke_graph.
+    Supports various formats.
+    """
+    if isinstance(result, dict):
+        if "output" in result and result["output"]:
+            return str(result["output"])
+        
+        if "messages" in result and result["messages"]:
+            messages = result["messages"]
+            last_msg = messages[-1]
+            
+            if hasattr(last_msg, 'content'):
+                return str(last_msg.content)
+            elif isinstance(last_msg, dict) and 'content' in last_msg:
+                return str(last_msg['content'])
+            
+    return str(result) if result else ""
+
