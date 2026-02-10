@@ -25,6 +25,11 @@ def minus(x: int, y: int) -> int:
     """minus of two integer"""
     return x - y
 
+@tool
+def multiply(x: int, y: int) -> int:
+    """ multiply of two integer"""
+    return x * y
+
 
 @tool
 def square_root(x):
