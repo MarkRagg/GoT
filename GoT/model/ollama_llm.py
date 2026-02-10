@@ -36,10 +36,11 @@ class OllamaLLM:
         return [sum_four, summing, minus, sum_three, square_root, multiply]
 
     def create_custom_agent(
-        self, tools, system_prompt: SystemMessage = SystemMessage(SYSTEM_PROMPT_GENERAL)
+        self, tools, system_prompt: SystemMessage = SystemMessage(SYSTEM_PROMPT_GENERAL), response_format=None
     ):
         return create_agent(
             model=self.ollamaLLM,
             tools=tools,
             system_prompt=system_prompt,
+            response_format=response_format
         )
