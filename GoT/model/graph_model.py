@@ -1,3 +1,4 @@
+from venv import logger
 from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, MessagesState, START, END
@@ -6,6 +7,7 @@ from GoT.model.ollama_llm import OllamaLLM
 from GoT.model.runtime_graph import RuntimeGraph, RuntimeNode, Score, TestNode
 from GoT.model.utils.utils import (
     parse_response,
+    parse_score,
     parse_tool_list,
     remove_tools_from_list,
 )
@@ -134,7 +136,7 @@ def test_result(result_msg: MessagesState):
         ),
     ]
 
-    score_res = judge_agent.invoke({"messages": judge_messages})["structured_response"]
+    score_res = parse_score(judge_agent.invoke({"messages": judge_messages}))
     test_node.score = score_res.score
     runtime_graph.resolve_node(test_node, AIMessage(score_res.description))
 
@@ -168,7 +170,7 @@ def chat_completition(messages: MessagesState):
 # https://docs.langchain.com/oss/python/langgraph/overview
 
 
-def invoke_graph(content: str):
+def invoke_graph():
     graph = StateGraph(MessagesState)
     graph.add_node(goal)
     graph.add_node(tool_expand)
@@ -184,11 +186,12 @@ def invoke_graph(content: str):
 
     graph = graph.compile()
 
+    logger.info(graph.get_graph().draw_mermaid())
+    
     res = graph.invoke(
-        {"messages": [{"role": "user", "content": content}]}
+        {"messages": [{"role": "user", "content": "Please, solve this problem: What is the capital of France?"}]}
     )
 
-    # logger.info(res)
-    # logger.info(graph.get_graph().draw_mermaid())
+    logger.info(res)
 
     return res
