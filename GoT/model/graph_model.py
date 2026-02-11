@@ -4,8 +4,9 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, MessagesState, START, END
 
 from GoT.model.ollama_llm import OllamaLLM
-from GoT.model.runtime_graph import RuntimeGraph, RuntimeNode, Score, TestNode
+from GoT.model.runtime_graph import RuntimeGraph, RuntimeNode, Score, TestNode, ToolNode
 from GoT.model.utils.utils import (
+    extract_tool_used,
     parse_response,
     parse_score,
     parse_tool_list,
@@ -35,15 +36,14 @@ judge_agent = OllamaLLM().create_custom_agent(
         "You are an assistant specialized in validation of response, like an LLM-as-a-judge. "
         "Your duty is to score, from 0 to 6, the response that user gives to you and assign to it a score. "
         "Your response MUST be a description of the score and then the"
-        "output format should be: "
-        "Score: <number> \n"
-        "0: The response is impossible to understand and completely wrong. "
-        "1: The response is near to be completely wrong. "
-        "2: The response is in the correct language but it doesn't follow the instruction. "
-        "3: The response try to resolve the problem but doesn't follow the instruction or the response is wrong. "
-        "4: The response follow the instruction but the result is wrong or the result is correct but doesn't follow the instruction. "
-        "5: The response follow the instruction and the result is near to the solution (If the task is hard, the solution should be near to the corrected one). "
-        "6: The response follow the instruction and the result is perfectly correct."
+        "Output format should use Score class"
+        "\n0: The response is impossible to understand and completely wrong. "
+        "\n1: The response is near to be completely wrong. "
+        "\n2: The response is in the correct language but it doesn't follow the instruction. "
+        "\n3: The response try to resolve the problem but doesn't follow the instruction or the response is wrong. "
+        "\n4: The response follow the instruction but the result is wrong or the result is correct but doesn't follow the instruction. "
+        "\n5: The response follow the instruction and the result is near to the solution (If the task is hard, the solution should be near to the corrected one). "
+        "\n6: The response follow the instruction and the result is perfectly correct."
     ),
     response_format=Score,
 )
@@ -70,16 +70,15 @@ def tool_expand(goal: MessagesState):
     # add tool nodes in the runtime graph
     for tool in tool_list:
         tool_node = RuntimeNode(
-            SystemMessage(sys_msg), AIMessage(tool), type="tool", resolved=True
+            SystemMessage(sys_msg), AIMessage(tool), resolved=True
         )
-        call_node = RuntimeNode(
+        call_node = ToolNode(
             SystemMessage(
                 "Please, resolve the problem with the tool: "
                 + tool
-                + ". You can't use other tools!"
             ),
             AIMessage(""),
-            type="call_tool",
+            tool_name=tool,
         )
         runtime_graph.add_node(tool_node)
         runtime_graph.add_node(call_node)
@@ -102,20 +101,23 @@ def tool_call(messages: MessagesState):
             " the tool that the user indicates to you. You MUST use the tool that user indicates to you. "
         ),
     )
-    res = parse_response(tool_agent.invoke(messages))
-    runtime_graph.resolve_node(call_node, AIMessage(res))
+
+    res = tool_agent.invoke(messages)
+    tool_used = extract_tool_used(res)
+    parsed_res = parse_response(res)
+    runtime_graph.resolve_node(call_node, AIMessage(parsed_res))
 
     # Add test node
     test_node = TestNode(
-        SystemMessage("Score this solution: \n" + res),
+        SystemMessage("Score this solution: \n" + parsed_res),
         AIMessage(""),
-        type="test",
         score=0,
+        tool_used=tool_used
     )
     runtime_graph.add_node(test_node)
     runtime_graph.add_edge(call_node, test_node)
     runtime_graph.temp_node = test_node
-    messages["messages"].append(AIMessage(res))
+    messages["messages"].append(AIMessage(parsed_res))
     return messages
 
 def response_evaluation(messages: MessagesState):
@@ -130,8 +132,9 @@ def response_evaluation(messages: MessagesState):
         HumanMessage(content=parse_response(runtime_graph.goal)),
         HumanMessage(content=call_node_response),
         SystemMessage(
-            content="Score this solution based on correctness and following instructions. Remember that you can't verify the usage of the tools."
+            content="Score this solution based on correctness and following instructions."
         ),
+        AIMessage(content="Tool used in the response: " + ", ".join(test_node.tool_used))
     ]
 
     score_res = parse_score(judge_agent.invoke({"messages": judge_messages}))
@@ -152,7 +155,6 @@ def test_result(messages: MessagesState):
         chat_completition_node = RuntimeNode(
             SystemMessage("Please, solve this problem"),
             AIMessage(""),
-            type="chat_completition",
         )
         runtime_graph.add_node(chat_completition_node)
         runtime_graph.temp_node = chat_completition_node
@@ -198,7 +200,7 @@ def invoke_graph(content: str):
 
     graph = graph.compile()
 
-    logger.info(graph.get_graph().draw_mermaid())
+    # logger.info(graph.get_graph().draw_mermaid())
 
     res = graph.invoke(
         {

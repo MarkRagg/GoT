@@ -2,6 +2,7 @@ import re
 
 from GoT.model.runtime_graph import Score
 from langgraph.graph import MessagesState
+from langchain_core.messages import AIMessage
 
 
 def parse_response(res) -> str:
@@ -55,7 +56,22 @@ def parse_score(response: MessagesState) -> Score:
         return score
     else:
         return Score(score=0, description="Failed to parse score")
+    
+def extract_tool_used(response: MessagesState) -> list[str]:
+    """
+    Extract the tool used from the response of the LLM, if present.
 
+    :param response: The LLM response
+    :type response: MessagesState
+    :return: The list of tools used
+    :rtype: list[str]
+    """
+    tools_used = []
+    for msg in response.get("messages", []):
+        if isinstance(msg, AIMessage):
+            for tool_call in msg.tool_calls:
+                tools_used.append(tool_call["name"])
+    return tools_used
 
 def remove_tools_from_list(tool_list, tools_to_remove):
     """
