@@ -14,7 +14,6 @@ SYSTEM_PROMPT_GENERAL = """
                 ...
             """
 
-
 class OllamaLLM:
     def __init__(self):
         with mlflow.set_active_model(name="ollama-agent-ministral-3"):

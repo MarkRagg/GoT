@@ -50,7 +50,11 @@ def parse_score(response: MessagesState) -> Score:
     :return: The score
     :rtype: int
     """
-    return response["structured_response"]
+    score = response.get("structured_response")
+    if isinstance(score, Score):
+        return score
+    else:    
+        return Score(score=0, description="Failed to parse score")
 
 
 def remove_tools_from_list(tool_list, tools_to_remove):
