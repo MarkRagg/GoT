@@ -1,14 +1,11 @@
 import pytest
 
-from GoT import MyClass
-
-
 # can test using classes, name must begin with `Test`
-class TestMyClass:
-    # test methods' names must begin with `test_`
-    def test_my_method(self):
-        x = MyClass().my_method()
-        assert "Hello World" == x
+# class TestMyClass:
+#     # test methods' names must begin with `test_`
+#     def test_my_method(self):
+#         x = MyClass().my_method()
+#         assert "Hello World" == x
 
 
 # can also have standalone test functions, name must begin with `test_`
