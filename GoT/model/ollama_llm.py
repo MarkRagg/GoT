@@ -3,7 +3,14 @@ from langchain_core.messages import SystemMessage
 from langchain.agents import create_agent
 import mlflow
 
-from GoT.tools.math_tool import multiply, sum_four, sum_three, summing, minus, square_root
+from GoT.tools.math_tool import (
+    multiply,
+    sum_four,
+    sum_three,
+    summing,
+    minus,
+    square_root,
+)
 
 mlflow.set_experiment("marcoraggini-experiment")
 mlflow.openai.autolog()
@@ -13,6 +20,7 @@ SYSTEM_PROMPT_GENERAL = """
                 You are a helpful assistant able to address general problems. 
                 ...
             """
+
 
 class OllamaLLM:
     def __init__(self):
@@ -35,11 +43,14 @@ class OllamaLLM:
         return [sum_four, summing, minus, sum_three, square_root, multiply]
 
     def create_custom_agent(
-        self, tools, system_prompt: SystemMessage = SystemMessage(SYSTEM_PROMPT_GENERAL), response_format=None
+        self,
+        tools,
+        system_prompt: SystemMessage = SystemMessage(SYSTEM_PROMPT_GENERAL),
+        response_format=None,
     ):
         return create_agent(
             model=self.ollamaLLM,
             tools=tools,
             system_prompt=system_prompt,
-            response_format=response_format
+            response_format=response_format,
         )
