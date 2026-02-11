@@ -44,6 +44,7 @@ class TestNode(RuntimeNode):
         self.score = score
         self.tool_used = tool_used
 
+
 class ToolNode(RuntimeNode):
     def __init__(
         self,
@@ -73,9 +74,7 @@ class RuntimeGraph:
         self.goal: MessagesState = MessagesState(messages=[])
         self.nodes: Dict[RuntimeNode, List[RuntimeNode]] = {}
         self.tools_available: Dict[RuntimeNode, str] = {}
-        self.temp_node: RuntimeNode = RuntimeNode(
-            SystemMessage(""), AIMessage("")
-        )
+        self.temp_node: RuntimeNode = RuntimeNode(SystemMessage(""), AIMessage(""))
 
     def add_node(self, node: RuntimeNode):
         self.nodes.setdefault(node, [])
@@ -93,16 +92,12 @@ class RuntimeGraph:
 
     def call_tool_node(self) -> RuntimeNode:  # TODO change name
         nodes = list(self.nodes.keys())
-        call_nodes = [
-            n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)
-        ]
+        call_nodes = [n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)]
         return call_nodes[0]
 
     def exist_tool_available(self) -> bool:
         nodes = list(self.nodes.keys())
-        call_nodes = [
-            n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)
-        ]
+        call_nodes = [n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)]
         return True if call_nodes else False
 
     def get_resolved_tools(self):
@@ -118,3 +113,46 @@ class RuntimeGraph:
             messages.append(node.prompt)
 
         return MessagesState(messages=messages)
+    
+    def print_mermaid(self) -> str:
+        lines = []
+
+        lines.append("---")
+        lines.append("config:")
+        lines.append("  flowchart:")
+        lines.append("    curve: linear")
+        lines.append("---")
+        lines.append("graph TD;")
+
+        # Nodi (rettangoli con angoli arrotondati)
+        for node in self.nodes:
+            node_type = type(node).__name__
+            label = f"<b>{node.id}</b><br/>{node_type}<br/>"
+            if isinstance(node, TestNode):
+                label += f"Score: {node.score}<br/>"
+            lines.append(f'    {node.id}("{label}");')
+
+        # Edge
+        for n1, children in self.nodes.items():
+            for n2 in children:
+                lines.append(f"    {n1.id} --> {n2.id};")
+
+        # Stili
+        lines.append("")
+        lines.append("    classDef resolved fill:#b7f7c0,stroke:#2ecc71,stroke-width:2px;")
+        lines.append("    classDef rejected fill:#f7b7b7,stroke:#e74c3c,stroke-width:2px;")
+        lines.append("    classDef unresolved fill:#e0e0e0,stroke:#9e9e9e,stroke-width:2px;")
+
+        for node in self.nodes:
+            cls = "resolved" if node.resolved else "unresolved"
+            lines.append(f"    class {node.id} {cls};")
+
+        return "\n".join(lines)
+    
+    def __get_color(self, node: RuntimeNode) -> str:
+        if node.resolved:
+            return "#b7f7c0" 
+        elif isinstance(node, TestNode) and node.score < 5:
+            return "#f7b7b7" 
+        else:
+            return "#e0e0e0" 

@@ -56,7 +56,8 @@ def parse_score(response: MessagesState) -> Score:
         return score
     else:
         return Score(score=0, description="Failed to parse score")
-    
+
+
 def extract_tool_used(response: MessagesState) -> list[str]:
     """
     Extract the tool used from the response of the LLM, if present.
@@ -72,6 +73,7 @@ def extract_tool_used(response: MessagesState) -> list[str]:
             for tool_call in msg.tool_calls:
                 tools_used.append(tool_call["name"])
     return tools_used
+
 
 def remove_tools_from_list(tool_list, tools_to_remove):
     """
