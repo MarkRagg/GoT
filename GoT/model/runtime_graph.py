@@ -11,14 +11,12 @@ class RuntimeNode:
         self,
         prompt: SystemMessage,
         response: AIMessage,
-        type: str,
         resolved: bool = False,
     ):
         self.id = RuntimeNode._id_counter  # ID unico per ogni nodo
         RuntimeNode._id_counter += 1
         self.prompt = prompt
         self.response = response
-        self.type = type
         self.resolved = resolved
 
     def __hash__(self):
@@ -30,7 +28,7 @@ class RuntimeNode:
         return self.id == other.id
 
     def __repr__(self):
-        return f"RuntimeNode(id={self.id}, type={self.type}, resolved={self.resolved})"
+        return f"RuntimeNode(id={self.id}, resolved={self.resolved})"
 
 
 class TestNode(RuntimeNode):
@@ -38,12 +36,24 @@ class TestNode(RuntimeNode):
         self,
         prompt: SystemMessage,
         response: AIMessage,
-        type: str,
         score: int,
+        tool_used: List[str] = [],
         resolved: bool = False,
     ):
-        super().__init__(prompt, response, type, resolved)
+        super().__init__(prompt, response, resolved)
         self.score = score
+        self.tool_used = tool_used
+
+class ToolNode(RuntimeNode):
+    def __init__(
+        self,
+        prompt: SystemMessage,
+        response: AIMessage,
+        tool_name: str,
+        resolved: bool = False,
+    ):
+        super().__init__(prompt, response, resolved)
+        self.tool_name = tool_name
 
 
 class Score(BaseModel):
@@ -64,7 +74,7 @@ class RuntimeGraph:
         self.nodes: Dict[RuntimeNode, List[RuntimeNode]] = {}
         self.tools_available: Dict[RuntimeNode, str] = {}
         self.temp_node: RuntimeNode = RuntimeNode(
-            SystemMessage(""), AIMessage(""), type="goal"
+            SystemMessage(""), AIMessage("")
         )
 
     def add_node(self, node: RuntimeNode):
@@ -84,14 +94,14 @@ class RuntimeGraph:
     def call_tool_node(self) -> RuntimeNode:  # TODO change name
         nodes = list(self.nodes.keys())
         call_nodes = [
-            n for n in nodes if (n.type.startswith("call_tool") and not n.resolved)
+            n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)
         ]
         return call_nodes[0]
 
     def exist_tool_available(self) -> bool:
         nodes = list(self.nodes.keys())
         call_nodes = [
-            n for n in nodes if (n.type.startswith("call_tool") and not n.resolved)
+            n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)
         ]
         return True if call_nodes else False
 
