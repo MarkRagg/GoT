@@ -69,14 +69,9 @@ def tool_expand(goal: MessagesState):
     tool_list = parse_tool_list(str_res)  # Toglie elementi inutili
     # add tool nodes in the runtime graph
     for tool in tool_list:
-        tool_node = RuntimeNode(
-            SystemMessage(sys_msg), AIMessage(tool), resolved=True
-        )
+        tool_node = RuntimeNode(SystemMessage(sys_msg), AIMessage(tool), resolved=True)
         call_node = ToolNode(
-            SystemMessage(
-                "Please, resolve the problem with the tool: "
-                + tool
-            ),
+            SystemMessage("Please, resolve the problem with the tool: " + tool),
             AIMessage(""),
             tool_name=tool,
         )
@@ -112,13 +107,14 @@ def tool_call(messages: MessagesState):
         SystemMessage("Score this solution: \n" + parsed_res),
         AIMessage(""),
         score=0,
-        tool_used=tool_used
+        tool_used=tool_used,
     )
     runtime_graph.add_node(test_node)
     runtime_graph.add_edge(call_node, test_node)
     runtime_graph.temp_node = test_node
     messages["messages"].append(AIMessage(parsed_res))
     return messages
+
 
 def response_evaluation(messages: MessagesState):
     # Get the actual tool execution result from the resolved call_node
@@ -134,7 +130,9 @@ def response_evaluation(messages: MessagesState):
         SystemMessage(
             content="Score this solution based on correctness and following instructions."
         ),
-        AIMessage(content="Tool used in the response: " + ", ".join(test_node.tool_used))
+        AIMessage(
+            content="Tool used in the response: " + ", ".join(test_node.tool_used)
+        ),
     ]
 
     score_res = parse_score(judge_agent.invoke({"messages": judge_messages}))
@@ -143,12 +141,13 @@ def response_evaluation(messages: MessagesState):
 
     return messages
 
+
 def test_result(messages: MessagesState):
     n = runtime_graph.exist_tool_available()
     test_node = runtime_graph.temp_node
     if not isinstance(test_node, TestNode):
         raise TypeError("Expected TestNode for scoring")
-    
+
     if test_node.score < 5 and n is True:
         return "backtrack"
     elif n is False:
@@ -192,15 +191,16 @@ def invoke_graph(content: str):
     graph.add_edge("tool_call", "response_evaluation")
     graph.add_edge("backtrack", "tool_call")
     graph.add_edge("chat_completition", END)
-    graph.add_conditional_edges("response_evaluation", test_result, {
-        "backtrack": "backtrack",
-        "chat_completition": "chat_completition",
-        END: END
-    })
+    graph.add_conditional_edges(
+        "response_evaluation",
+        test_result,
+        {"backtrack": "backtrack", "chat_completition": "chat_completition", END: END},
+    )
 
     graph = graph.compile()
 
     # logger.info(graph.get_graph().draw_mermaid())
+
 
     res = graph.invoke(
         {
@@ -214,5 +214,5 @@ def invoke_graph(content: str):
     )
 
     # logger.info(res)
-
+    print(runtime_graph.print_mermaid())
     return res
