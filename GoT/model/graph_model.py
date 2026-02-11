@@ -115,12 +115,10 @@ def tool_call(messages: MessagesState):
     runtime_graph.add_node(test_node)
     runtime_graph.add_edge(call_node, test_node)
     runtime_graph.temp_node = test_node
-    return messages["messages"].append(AIMessage(res))
+    messages["messages"].append(AIMessage(res))
+    return messages
 
-
-def test_result(result_msg: MessagesState):
-    n = runtime_graph.exist_tool_available()
-
+def response_evaluation(messages: MessagesState):
     # Get the actual tool execution result from the resolved call_node
     test_node = runtime_graph.temp_node
     if not isinstance(test_node, TestNode):
@@ -140,6 +138,14 @@ def test_result(result_msg: MessagesState):
     test_node.score = score_res.score
     runtime_graph.resolve_node(test_node, AIMessage(score_res.description))
 
+    return messages
+
+def test_result(messages: MessagesState):
+    n = runtime_graph.exist_tool_available()
+    test_node = runtime_graph.temp_node
+    if not isinstance(test_node, TestNode):
+        raise TypeError("Expected TestNode for scoring")
+    
     if test_node.score < 5 and n is True:
         return "backtrack"
     elif n is False:
@@ -170,19 +176,25 @@ def chat_completition(messages: MessagesState):
 # https://docs.langchain.com/oss/python/langgraph/overview
 
 
-def invoke_graph():
+def invoke_graph(content: str):
     graph = StateGraph(MessagesState)
     graph.add_node(goal)
     graph.add_node(tool_expand)
     graph.add_node(tool_call)
     graph.add_node(backtrack)
     graph.add_node(chat_completition)
+    graph.add_node(response_evaluation)
     graph.add_edge(START, "goal")
     graph.add_edge("goal", "tool_expand")
     graph.add_edge("tool_expand", "tool_call")
-    graph.add_conditional_edges("tool_call", test_result)
+    graph.add_edge("tool_call", "response_evaluation")
     graph.add_edge("backtrack", "tool_call")
     graph.add_edge("chat_completition", END)
+    graph.add_conditional_edges("response_evaluation", test_result, {
+        "backtrack": "backtrack",
+        "chat_completition": "chat_completition",
+        END: END
+    })
 
     graph = graph.compile()
 
@@ -193,12 +205,12 @@ def invoke_graph():
             "messages": [
                 {
                     "role": "user",
-                    "content": "Please, solve this problem: What is the capital of France?",
+                    "content": content,
                 }
             ]
         }
     )
 
-    logger.info(res)
+    # logger.info(res)
 
     return res
