@@ -7,6 +7,7 @@ from GoT.model.lm_wrapper import LangGraphBigBenchWrapper
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("GoT")
 
+
 def main():
     # tm = tasks.TaskManager()
     # all_tasks = tm.all_tasks
@@ -24,14 +25,15 @@ def main():
     results = evaluator.evaluate(
         lm=lm,
         task_dict=task_dict,
-        limit=1, # Limit to 3 samples for quick testing
-        log_samples=True, 
-        verbosity="INFO" 
+        limit=1,  # Limit to 3 samples for quick testing
+        log_samples=True,
+        verbosity="INFO",
     )
 
     # --- Salva in JSON ---
     with open("graph_benchmark_results.json", "w") as f:
         json.dump(results, f, indent=2)
+
 
 # let this be the last line of this file
 logger.info("GoT loaded")

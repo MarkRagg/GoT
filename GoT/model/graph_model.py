@@ -45,7 +45,7 @@ judge_agent = OllamaLLM().create_custom_agent(
         "5: The response follow the instruction and the result is near to the solution (If the task is hard, the solution should be near to the corrected one). "
         "6: The response follow the instruction and the result is perfectly correct."
     ),
-    response_format=Score
+    response_format=Score,
 )
 
 # Defining runtime graph
@@ -187,9 +187,16 @@ def invoke_graph():
     graph = graph.compile()
 
     logger.info(graph.get_graph().draw_mermaid())
-    
+
     res = graph.invoke(
-        {"messages": [{"role": "user", "content": "Please, solve this problem: What is the capital of France?"}]}
+        {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": "Please, solve this problem: What is the capital of France?",
+                }
+            ]
+        }
     )
 
     logger.info(res)
