@@ -53,7 +53,7 @@ def parse_score(response: MessagesState) -> Score:
     score = response.get("structured_response")
     if isinstance(score, Score):
         return score
-    else:    
+    else:
         return Score(score=0, description="Failed to parse score")
 
 
@@ -67,6 +67,7 @@ def remove_tools_from_list(tool_list, tools_to_remove):
     result = [tool for tool in tool_list if tool.func.__name__ not in tools_to_remove]
     return result
 
+
 def extract_output(result) -> str:
     """
     Extracts the output from the result of invoke_graph.
@@ -75,15 +76,14 @@ def extract_output(result) -> str:
     if isinstance(result, dict):
         if "output" in result and result["output"]:
             return str(result["output"])
-        
+
         if "messages" in result and result["messages"]:
             messages = result["messages"]
             last_msg = messages[-1]
-            
-            if hasattr(last_msg, 'content'):
-                return str(last_msg.content)
-            elif isinstance(last_msg, dict) and 'content' in last_msg:
-                return str(last_msg['content'])
-            
-    return str(result) if result else ""
 
+            if hasattr(last_msg, "content"):
+                return str(last_msg.content)
+            elif isinstance(last_msg, dict) and "content" in last_msg:
+                return str(last_msg["content"])
+
+    return str(result) if result else ""

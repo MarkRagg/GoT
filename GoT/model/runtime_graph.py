@@ -45,15 +45,18 @@ class TestNode(RuntimeNode):
         super().__init__(prompt, response, type, resolved)
         self.score = score
 
+
 class Score(BaseModel):
-    """ Rapresents a score for a test node. 
+    """Rapresents a score for a test node.
 
     Attributes:
         score: int - The score assigned to the test node.
         description: str - A description or rationale for the assigned score.
     """
-    score: int 
+
+    score: int
     description: str
+
 
 class RuntimeGraph:
     def __init__(self):
