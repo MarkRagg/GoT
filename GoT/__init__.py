@@ -2,7 +2,7 @@ import json
 import logging
 
 from lm_eval import evaluator, tasks
-from GoT.model.lm_wrapper import LangGraphLMWrapper, LangGraphBigBenchWrapper
+from GoT.model.lm_wrapper import LangGraphBigBenchWrapper
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("GoT")
