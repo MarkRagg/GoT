@@ -35,7 +35,7 @@ def parse_tool_list(response: str) -> list[str]:
             content = re.sub(r"^[\*\-]\s+", "", line)
             # Extract just the first word (the tool name)
             tool_name = content.split()[0]
-            if tool_name and counter <= 3:
+            if tool_name and counter <= 2:  # Limit to 3 tools
                 counter += 1
                 tool_list.append(tool_name)
 
