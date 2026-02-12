@@ -1,6 +1,6 @@
 from typing import Dict, List
 from langgraph.graph import MessagesState
-from langchain_core.messages import AIMessage, SystemMessage, AnyMessage
+from langchain_core.messages import AnyMessage
 from pydantic import BaseModel
 
 
@@ -9,14 +9,10 @@ class RuntimeNode:
 
     def __init__(
         self,
-        prompt: SystemMessage,
-        response: AIMessage,
         resolved: bool = False,
     ):
         self.id = RuntimeNode._id_counter  # ID unico per ogni nodo
         RuntimeNode._id_counter += 1
-        self.prompt = prompt
-        self.response = response
         self.resolved = resolved
 
     def __hash__(self):
@@ -34,13 +30,15 @@ class RuntimeNode:
 class TestNode(RuntimeNode):
     def __init__(
         self,
-        prompt: SystemMessage,
-        response: AIMessage,
+        prompt: str,
+        response: str,
         score: int,
         tool_used: List[str] = [],
         resolved: bool = False,
     ):
-        super().__init__(prompt, response, resolved)
+        super().__init__(resolved)
+        self.prompt = prompt
+        self.response = response
         self.score = score
         self.tool_used = tool_used
 
@@ -48,13 +46,35 @@ class TestNode(RuntimeNode):
 class ToolNode(RuntimeNode):
     def __init__(
         self,
-        prompt: SystemMessage,
-        response: AIMessage,
+        prompt: str,
+        response: str,
         tool_name: str,
         resolved: bool = False,
     ):
-        super().__init__(prompt, response, resolved)
+        super().__init__(resolved)
+        self.prompt = prompt
+        self.response = response
         self.tool_name = tool_name
+
+
+class GoalNode(RuntimeNode):
+    def __init__(
+        self,
+        prompt: str,
+        resolved: bool = False,
+    ):
+        super().__init__(resolved)
+        self.prompt = prompt
+
+
+class BackTrackNode(RuntimeNode):
+    def __init__(
+        self,
+        feedback: str,
+        resolved: bool = True,
+    ):
+        super().__init__(resolved)
+        self.feedback = feedback
 
 
 class Score(BaseModel):
@@ -74,7 +94,7 @@ class RuntimeGraph:
         self.goal: MessagesState = MessagesState(messages=[])
         self.nodes: Dict[RuntimeNode, List[RuntimeNode]] = {}
         self.tools_available: Dict[RuntimeNode, str] = {}
-        self.temp_node: RuntimeNode = RuntimeNode(SystemMessage(""), AIMessage(""))
+        self.temp_node: RuntimeNode = RuntimeNode()
 
     def add_node(self, node: RuntimeNode):
         self.nodes.setdefault(node, [])
@@ -86,7 +106,7 @@ class RuntimeGraph:
     def add_tool_link(self, call_node: RuntimeNode, tool_name: str):
         self.tools_available.setdefault(call_node, tool_name)
 
-    def resolve_node(self, node: RuntimeNode, response: AIMessage) -> None:
+    def resolve_node(self, node: RuntimeNode, response: str) -> None:
         node.response = response
         node.resolved = True
 
@@ -113,7 +133,7 @@ class RuntimeGraph:
             messages.append(node.prompt)
 
         return MessagesState(messages=messages)
-    
+
     def print_mermaid(self) -> str:
         lines = []
 
@@ -139,20 +159,26 @@ class RuntimeGraph:
 
         # Stili
         lines.append("")
-        lines.append("    classDef resolved fill:#b7f7c0,stroke:#2ecc71,stroke-width:2px;")
-        lines.append("    classDef rejected fill:#f7b7b7,stroke:#e74c3c,stroke-width:2px;")
-        lines.append("    classDef unresolved fill:#e0e0e0,stroke:#9e9e9e,stroke-width:2px;")
+        lines.append(
+            "    classDef resolved fill:#b7f7c0,stroke:#2ecc71,stroke-width:2px;"
+        )
+        lines.append(
+            "    classDef rejected fill:#f7b7b7,stroke:#e74c3c,stroke-width:2px;"
+        )
+        lines.append(
+            "    classDef unresolved fill:#e0e0e0,stroke:#9e9e9e,stroke-width:2px;"
+        )
 
         for node in self.nodes:
-            cls = "resolved" if node.resolved else "unresolved"
+            cls = self.__get_color(node)
             lines.append(f"    class {node.id} {cls};")
 
         return "\n".join(lines)
-    
+
     def __get_color(self, node: RuntimeNode) -> str:
-        if node.resolved:
-            return "#b7f7c0" 
-        elif isinstance(node, TestNode) and node.score < 5:
-            return "#f7b7b7" 
+        if isinstance(node, TestNode) and node.score < 5:
+            return "rejected"
+        elif node.resolved:
+            return "resolved"
         else:
-            return "#e0e0e0" 
+            return "unresolved"
