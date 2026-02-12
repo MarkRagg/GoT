@@ -4,7 +4,15 @@ from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, MessagesState, START, END
 
 from GoT.model.ollama_llm import OllamaLLM
-from GoT.model.runtime_graph import RuntimeGraph, RuntimeNode, Score, TestNode, ToolNode
+from GoT.model.runtime_graph import (
+    BackTrackNode,
+    GoalNode,
+    RuntimeGraph,
+    RuntimeNode,
+    Score,
+    TestNode,
+    ToolNode,
+)
 from GoT.model.utils.utils import (
     extract_tool_used,
     parse_response,
@@ -54,6 +62,9 @@ runtime_graph = RuntimeGraph()
 
 def goal(prompt: MessagesState):
     runtime_graph.goal = prompt
+    goal_node = GoalNode(parse_response(prompt))
+    runtime_graph.add_node(goal_node)
+    runtime_graph.temp_node = goal_node
     return prompt
 
 
@@ -69,13 +80,16 @@ def tool_expand(goal: MessagesState):
     tool_list = parse_tool_list(str_res)  # Toglie elementi inutili
     # add tool nodes in the runtime graph
     for tool in tool_list:
-        tool_node = RuntimeNode(SystemMessage(sys_msg), AIMessage(tool), resolved=True)
+        tool_node = RuntimeNode(resolved=True)
         call_node = ToolNode(
-            SystemMessage("Please, resolve the problem with the tool: " + tool),
-            AIMessage(""),
+            f"Please, resolve the problem with the tool: {tool}",
+            "",
             tool_name=tool,
         )
         runtime_graph.add_node(tool_node)
+        runtime_graph.add_edge(
+            runtime_graph.temp_node, tool_node
+        )  # edge from goal to tool node
         runtime_graph.add_node(call_node)
         runtime_graph.add_edge(tool_node, call_node)
         runtime_graph.add_tool_link(call_node, tool)
@@ -100,12 +114,12 @@ def tool_call(messages: MessagesState):
     res = tool_agent.invoke(messages)
     tool_used = extract_tool_used(res)
     parsed_res = parse_response(res)
-    runtime_graph.resolve_node(call_node, AIMessage(parsed_res))
+    runtime_graph.resolve_node(call_node, parsed_res)
 
     # Add test node
     test_node = TestNode(
-        SystemMessage("Score this solution: \n" + parsed_res),
-        AIMessage(""),
+        f"Score this solution: \n{parsed_res}",
+        "",
         score=0,
         tool_used=tool_used,
     )
@@ -121,7 +135,7 @@ def response_evaluation(messages: MessagesState):
     test_node = runtime_graph.temp_node
     if not isinstance(test_node, TestNode):
         raise TypeError("Expected TestNode for scoring")
-    call_node_response = test_node.prompt.content  # The actual solution to judge
+    call_node_response = test_node.prompt  # The actual solution to judge
 
     # Create a proper message for the judge with the solution
     judge_messages = [
@@ -137,7 +151,7 @@ def response_evaluation(messages: MessagesState):
 
     score_res = parse_score(judge_agent.invoke({"messages": judge_messages}))
     test_node.score = score_res.score
-    runtime_graph.resolve_node(test_node, AIMessage(score_res.description))
+    runtime_graph.resolve_node(test_node, score_res.description)
 
     return messages
 
@@ -152,10 +166,11 @@ def test_result(messages: MessagesState):
         return "backtrack"
     elif n is False:
         chat_completition_node = RuntimeNode(
-            SystemMessage("Please, solve this problem"),
-            AIMessage(""),
+            "Please, solve this problem",
+            "",
         )
         runtime_graph.add_node(chat_completition_node)
+        runtime_graph.add_edge(test_node, chat_completition_node)
         runtime_graph.temp_node = chat_completition_node
         return "chat_completition"
     else:
@@ -163,7 +178,16 @@ def test_result(messages: MessagesState):
 
 
 def backtrack(messages: MessagesState):
+    test_node = runtime_graph.temp_node
+    if not isinstance(test_node, TestNode):
+        raise TypeError("Expected TestNode for backtracking")
+    backtrack_node = BackTrackNode(feedback=test_node.response, resolved=True)
+    runtime_graph.add_node(backtrack_node)
+    runtime_graph.add_edge(test_node, backtrack_node)
     runtime_graph.temp_node = runtime_graph.call_tool_node()
+    runtime_graph.add_edge(
+        backtrack_node, runtime_graph.temp_node
+    )  # tool call node that we want to resolve
     return runtime_graph.runtime_node_to_state(runtime_graph.temp_node)
 
 
@@ -200,7 +224,6 @@ def invoke_graph(content: str):
     graph = graph.compile()
 
     # logger.info(graph.get_graph().draw_mermaid())
-
 
     res = graph.invoke(
         {
