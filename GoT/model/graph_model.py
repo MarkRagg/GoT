@@ -5,8 +5,10 @@ from langgraph.graph import StateGraph, MessagesState, START, END
 
 from GoT.model.ollama_llm import OllamaLLM
 from GoT.model.runtime_graph import (
-    BackTrackNode,
+    BacktrackNode,
+    CompletitionNode,
     GoalNode,
+    Response,
     RuntimeGraph,
     RuntimeNode,
     Score,
@@ -16,6 +18,7 @@ from GoT.model.runtime_graph import (
 from GoT.model.utils.utils import (
     extract_tool_used,
     parse_response,
+    parse_response_for_tool_node,
     parse_score,
     parse_tool_list,
     remove_tools_from_list,
@@ -44,7 +47,7 @@ judge_agent = OllamaLLM().create_custom_agent(
         "You are an assistant specialized in validation of response, like an LLM-as-a-judge. "
         "Your duty is to score, from 0 to 6, the response that user gives to you and assign to it a score. "
         "Your response MUST be a description of the score and then the"
-        "Output format should use Score class"
+        "Output format should use Score function"
         "\n0: The response is impossible to understand and completely wrong. "
         "\n1: The response is near to be completely wrong. "
         "\n2: The response is in the correct language but it doesn't follow the instruction. "
@@ -62,7 +65,7 @@ runtime_graph = RuntimeGraph()
 
 def goal(prompt: MessagesState):
     runtime_graph.goal = prompt
-    goal_node = GoalNode(parse_response(prompt))
+    goal_node = GoalNode(parse_response(prompt), resolved=True)
     runtime_graph.add_node(goal_node)
     runtime_graph.temp_node = goal_node
     return prompt
@@ -95,7 +98,7 @@ def tool_expand(goal: MessagesState):
         runtime_graph.add_tool_link(call_node, tool)
     # extract a tool to call
     runtime_graph.temp_node = runtime_graph.call_tool_node()
-    return runtime_graph.runtime_node_to_state(runtime_graph.temp_node)
+    return runtime_graph.append_prompt_to_messages_state(runtime_graph.temp_node)
 
 
 def tool_call(messages: MessagesState):
@@ -107,13 +110,14 @@ def tool_call(messages: MessagesState):
         ),
         SystemMessage(
             "You are an assistant specialized in tools. Your goal is to resolve the problem with "
-            " the tool that the user indicates to you. You MUST use the tool that user indicates to you. "
+            " the tool that the user indicates to you. You MUST use the tool that user indicates to you and use the Response function to calculate the response. "
         ),
+        response_format=Response,
     )
 
     res = tool_agent.invoke(messages)
     tool_used = extract_tool_used(res)
-    parsed_res = parse_response(res)
+    parsed_res = parse_response_for_tool_node(res).explanation
     runtime_graph.resolve_node(call_node, parsed_res)
 
     # Add test node
@@ -165,7 +169,7 @@ def test_result(messages: MessagesState):
     if test_node.score < 5 and n is True:
         return "backtrack"
     elif n is False:
-        chat_completition_node = RuntimeNode(
+        chat_completition_node = CompletitionNode(
             "Please, solve this problem",
             "",
         )
@@ -181,14 +185,16 @@ def backtrack(messages: MessagesState):
     test_node = runtime_graph.temp_node
     if not isinstance(test_node, TestNode):
         raise TypeError("Expected TestNode for backtracking")
-    backtrack_node = BackTrackNode(feedback=test_node.response, resolved=True)
+    backtrack_node = BacktrackNode(feedback=test_node.response, resolved=True)
     runtime_graph.add_node(backtrack_node)
     runtime_graph.add_edge(test_node, backtrack_node)
     runtime_graph.temp_node = runtime_graph.call_tool_node()
     runtime_graph.add_edge(
         backtrack_node, runtime_graph.temp_node
     )  # tool call node that we want to resolve
-    return runtime_graph.runtime_node_to_state(runtime_graph.temp_node)
+    messages = runtime_graph.append_prompt_to_messages_state(runtime_graph.temp_node)
+    MessagesState(messages).get("messages", []).append(AIMessage(backtrack_node.feedback))
+    return messages
 
 
 def chat_completition(messages: MessagesState):
