@@ -67,7 +67,18 @@ class GoalNode(RuntimeNode):
         self.prompt = prompt
 
 
-class BackTrackNode(RuntimeNode):
+class CompletitionNode(RuntimeNode):
+    def __init__(
+        self,
+        prompt: str,
+        response: str,
+        resolved: bool = False,
+    ):
+        super().__init__(resolved)
+        self.prompt = prompt
+        self.response = response
+
+class BacktrackNode(RuntimeNode):
     def __init__(
         self,
         feedback: str,
@@ -75,6 +86,15 @@ class BackTrackNode(RuntimeNode):
     ):
         super().__init__(resolved)
         self.feedback = feedback
+
+class ContextNode(RuntimeNode):
+    def __init__(
+        self,
+        context: str,
+        resolved: bool = False,
+    ):
+        super().__init__(resolved)
+        self.context = context
 
 
 class Score(BaseModel):
@@ -88,6 +108,16 @@ class Score(BaseModel):
     score: int
     description: str
 
+class Response(BaseModel):
+    """Rapresents a response for a tool node.
+
+    Attributes:
+        response: str - The synthethic response.
+        explanation: str - An explanation or rationale for the response.
+    """
+
+    response: str
+    explanation: str
 
 class RuntimeGraph:
     def __init__(self):
@@ -110,7 +140,7 @@ class RuntimeGraph:
         node.response = response
         node.resolved = True
 
-    def call_tool_node(self) -> RuntimeNode:  # TODO change name
+    def call_tool_node(self) -> ToolNode:  # TODO change name
         nodes = list(self.nodes.keys())
         call_nodes = [n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)]
         return call_nodes[0]
@@ -124,7 +154,7 @@ class RuntimeGraph:
         resolved_nodes = [t for t in self.tools_available.keys() if t.resolved is True]
         return [self.tools_available[n] for n in resolved_nodes]
 
-    def runtime_node_to_state(
+    def append_prompt_to_messages_state(
         self, node: RuntimeNode
     ) -> MessagesState:  # TODO change name
         messages: list[AnyMessage] = []
