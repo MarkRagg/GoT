@@ -1,6 +1,6 @@
 import re
 
-from GoT.model.runtime_graph import Score
+from GoT.model.runtime_graph import Response, Score
 from langgraph.graph import MessagesState
 from langchain_core.messages import AIMessage
 
@@ -56,6 +56,25 @@ def parse_score(response: MessagesState) -> Score:
         return score
     else:
         return Score(score=0, description="Failed to parse score")
+
+
+def parse_response_for_tool_node(response: MessagesState) -> Response:
+    """
+    Parse LLM response to get the response for a tool node.
+
+    :param response: The LLM response
+    :type response: MessagesState
+    :return: The response for the tool node
+    :rtype: Response
+    """
+    structured_response = response.get("structured_response")
+    if isinstance(structured_response, Response):
+        return structured_response
+    else:
+        return Response(
+            response="Failed to parse response",
+            explanation="The structured response is not in the expected format.",
+        )
 
 
 def extract_tool_used(response: MessagesState) -> list[str]:
