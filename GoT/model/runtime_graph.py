@@ -96,6 +96,15 @@ class ContextNode(RuntimeNode):
         super().__init__(resolved)
         self.context = context
 
+class ResponseNode(RuntimeNode):
+    def __init__(
+        self,
+        response: str,
+        resolved: bool = False,
+    ):
+        super().__init__(resolved)
+        self.response = response
+
 
 class Score(BaseModel):
     """Rapresents a score for a test node.
@@ -125,6 +134,7 @@ class RuntimeGraph:
         self.nodes: Dict[RuntimeNode, List[RuntimeNode]] = {}
         self.tools_available: Dict[RuntimeNode, str] = {}
         self.temp_node: RuntimeNode = RuntimeNode()
+        self.temp_response: ResponseNode = ResponseNode(response="", resolved=False)
 
     def add_node(self, node: RuntimeNode):
         self.nodes.setdefault(node, [])
