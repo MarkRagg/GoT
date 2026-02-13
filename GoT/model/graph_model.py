@@ -117,6 +117,7 @@ def tool_call(messages: MessagesState):
 
     res = tool_agent.invoke(messages)
     tool_used = extract_tool_used(res)
+    runtime_graph.temp_response.response = parse_response_for_tool_node(res).response
     parsed_res = parse_response_for_tool_node(res).explanation
     runtime_graph.resolve_node(call_node, parsed_res)
 
@@ -166,9 +167,13 @@ def test_result(messages: MessagesState):
     if not isinstance(test_node, TestNode):
         raise TypeError("Expected TestNode for scoring")
 
-    if test_node.score < 5 and n is True:
+    if test_node.score >= 5:
+        runtime_graph.add_edge(test_node, runtime_graph.temp_response)
+        runtime_graph.temp_response.resolved = True
+        return END
+    elif test_node.score < 5 and n is True:
         return "backtrack"
-    elif n is False:
+    else:
         chat_completition_node = CompletitionNode(
             "Please, solve this problem",
             "",
@@ -177,8 +182,6 @@ def test_result(messages: MessagesState):
         runtime_graph.add_edge(test_node, chat_completition_node)
         runtime_graph.temp_node = chat_completition_node
         return "chat_completition"
-    else:
-        return END
 
 
 def backtrack(messages: MessagesState):
@@ -199,8 +202,11 @@ def backtrack(messages: MessagesState):
 
 def chat_completition(messages: MessagesState):
     new_messages_history = runtime_graph.goal
-    new_messages_history["messages"].append(runtime_graph.temp_node.prompt)
-    chat_completition_agent.invoke(new_messages_history)
+    new_messages_history["messages"].append(AIMessage(content=runtime_graph.temp_node.prompt))
+    result = parse_response(chat_completition_agent.invoke(new_messages_history))
+    runtime_graph.temp_response.response = result
+    runtime_graph.temp_response.resolved = True
+    new_messages_history["messages"].append(AIMessage(content=result))
     return new_messages_history
 
 
@@ -241,6 +247,8 @@ def invoke_graph(content: str):
             ]
         }
     )
+    
+    res["output"] = runtime_graph.temp_response.response
 
     # logger.info(res)
     print(runtime_graph.print_mermaid())
