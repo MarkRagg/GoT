@@ -1,5 +1,5 @@
 import math
-from GoT.model.graph_model import invoke_graph
+from GoT.model.graph_model import invoke_graph, set_prompt
 from lm_eval.api.registry import register_model
 from lm_eval.api.model import LM
 
@@ -18,7 +18,8 @@ class LangGraphLM:
         outputs = []
         for r in requests:
             prompt = r["prompt"]
-            result = invoke_graph(prompt)  # usa la tua funzione
+            set_prompt(prompt)  # Imposta il prompt globale
+            result = invoke_graph()  # usa la tua funzione
             outputs.append(result["output"])
         return outputs
 
@@ -154,8 +155,8 @@ class LangGraphBigBenchWrapper(LM):
             try:
                 question = self._extract_text_from_request(request)
 
-                # Chiama il tuo grafo LangGraph
-                result = invoke_graph(question)
+                set_prompt(question)
+                result = invoke_graph()
 
                 # Estrai l'output
                 output = extract_output(result)
