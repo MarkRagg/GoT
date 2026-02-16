@@ -122,7 +122,7 @@ def tool_call(messages: MessagesState):
     res = tool_agent.invoke(messages)
     tool_used = extract_tool_used(res)
     runtime_graph.temp_response.response = parse_response_for_tool_node(res).response
-    parsed_res = parse_response_for_tool_node(res).explanation
+    parsed_res = f"Response: {parse_response_for_tool_node(res).response}\nExplanation: {parse_response_for_tool_node(res).explanation}"
     runtime_graph.resolve_node(call_node, parsed_res)
 
     # Add test node
@@ -252,7 +252,7 @@ def invoke_graph():
 
     graph = graph.compile()
 
-    # logger.info(graph.get_graph().draw_mermaid())
+    logger.info(graph.get_graph().draw_mermaid())
 
     res = graph.invoke(
         {
@@ -267,7 +267,7 @@ def invoke_graph():
 
     res["output"] = runtime_graph.temp_response.response
 
-    # logger.info(res)
+    logger.info(res)
     print(runtime_graph.print_mermaid())
     runtime_graph.clear()
     return res

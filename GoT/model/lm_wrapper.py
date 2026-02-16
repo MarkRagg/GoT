@@ -58,7 +58,8 @@ class LangGraphLMWrapper(LM):
                         question = str(request)
 
                 # Call invoke_graph with just the question
-                result = invoke_graph(question)
+                set_prompt(question)
+                result = invoke_graph()
 
                 # Extract the final answer from the result
                 output = ""
@@ -204,7 +205,8 @@ class LangGraphBigBenchWrapper(LM):
                 full_text = context + continuation
 
                 # Chiama il grafo
-                result = invoke_graph(full_text)
+                set_prompt(full_text)
+                result = invoke_graph()
                 generated_output = extract_output(result)
 
                 # Calcola il score di likelihood
