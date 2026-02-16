@@ -46,8 +46,9 @@ judge_agent = OllamaLLM().create_custom_agent(
     SystemMessage(
         "You are an assistant specialized in validation of response, like an LLM-as-a-judge. "
         "Your duty is to score, from 0 to 6, the response that user gives to you and assign to it a score. "
-        "Your response MUST be a description of the score and then the"
-        "Output format should use Score function"
+        "You MUST respond ONLY using the Score function. "
+        "Do not write natural language outside the function. "
+        "If you fail to respect the format, the evaluation will fail."
         "\n0: The response is impossible to understand and completely wrong. "
         "\n1: The response is near to be completely wrong. "
         "\n2: The response is in the correct language but it doesn't follow the instruction. "
@@ -110,7 +111,10 @@ def tool_call(messages: MessagesState):
         ),
         SystemMessage(
             "You are an assistant specialized in tools. Your goal is to resolve the problem with "
-            " the tool that the user indicates to you. You MUST use the tool that user indicates to you and use the Response function to calculate the response. "
+            " the tool that the user indicates to you. You MUST use the tool that user indicates to you."
+            "You MUST respond ONLY using the Response function. "
+            "Do not write natural language outside the function. "
+            "If you fail to respect the format, the evaluation will fail."
         ),
         response_format=Response,
     )
@@ -123,7 +127,7 @@ def tool_call(messages: MessagesState):
 
     # Add test node
     test_node = TestNode(
-        f"Score this solution: \n{parsed_res}",
+        f"{parsed_res}",
         "",
         score=0,
         tool_used=tool_used,
@@ -144,8 +148,8 @@ def response_evaluation(messages: MessagesState):
 
     # Create a proper message for the judge with the solution
     judge_messages = [
-        HumanMessage(content=parse_response(runtime_graph.goal)),
-        HumanMessage(content=call_node_response),
+        HumanMessage(content="Original task:\n" + parse_response(runtime_graph.goal)),
+        HumanMessage(content="Solution:\n" + call_node_response),
         SystemMessage(
             content="Score this solution based on correctness and following instructions."
         ),
