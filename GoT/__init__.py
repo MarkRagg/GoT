@@ -25,9 +25,11 @@ def lm_eval_benchmark():
     with open("graph_benchmark_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
+
 def custom_test():
     set_prompt("What is 4726621 + 2 * 392 - 3432?")
     invoke_graph()
+
 
 def main():
     # It could be changed with custom_test() to test a custom problem instead of the benchmark
