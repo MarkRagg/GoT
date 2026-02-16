@@ -200,13 +200,17 @@ def backtrack(messages: MessagesState):
         backtrack_node, runtime_graph.temp_node
     )  # tool call node that we want to resolve
     messages = runtime_graph.append_prompt_to_messages_state(runtime_graph.temp_node)
-    MessagesState(messages).get("messages", []).append(AIMessage(backtrack_node.feedback))
+    MessagesState(messages).get("messages", []).append(
+        AIMessage(backtrack_node.feedback)
+    )
     return messages
 
 
 def chat_completition(messages: MessagesState):
     new_messages_history = runtime_graph.goal
-    new_messages_history["messages"].append(AIMessage(content=runtime_graph.temp_node.prompt))
+    new_messages_history["messages"].append(
+        AIMessage(content=runtime_graph.temp_node.prompt)
+    )
     result = parse_response(chat_completition_agent.invoke(new_messages_history))
     runtime_graph.temp_response.response = result
     runtime_graph.temp_response.resolved = True
@@ -216,8 +220,15 @@ def chat_completition(messages: MessagesState):
 
 # https://docs.langchain.com/oss/python/langgraph/overview
 
+content = ""
 
-def invoke_graph(content: str):
+
+def set_prompt(prompt: str):
+    global content
+    content = prompt
+
+
+def invoke_graph():
     graph = StateGraph(MessagesState)
     graph.add_node(goal)
     graph.add_node(tool_expand)
@@ -251,7 +262,7 @@ def invoke_graph(content: str):
             ]
         }
     )
-    
+
     res["output"] = runtime_graph.temp_response.response
 
     # logger.info(res)
