@@ -252,4 +252,5 @@ def invoke_graph(content: str):
 
     # logger.info(res)
     print(runtime_graph.print_mermaid())
+    runtime_graph.clear()
     return res

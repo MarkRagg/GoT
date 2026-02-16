@@ -173,6 +173,12 @@ class RuntimeGraph:
             messages.append(node.prompt)
 
         return MessagesState(messages=messages)
+    
+    def clear(self):
+        self.nodes = {}
+        self.tools_available = {}
+        self.temp_node = RuntimeNode()
+        self.temp_response = ResponseNode(response="", resolved=False)
 
     def print_mermaid(self) -> str:
         lines = []
