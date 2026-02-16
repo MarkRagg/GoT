@@ -200,7 +200,7 @@ def backtrack(messages: MessagesState):
         backtrack_node, runtime_graph.temp_node
     )  # tool call node that we want to resolve
     messages = runtime_graph.append_prompt_to_messages_state(runtime_graph.temp_node)
-    MessagesState(messages).get("messages", []).append(
+    messages.get("messages", []).append(
         AIMessage(backtrack_node.feedback)
     )
     return messages
@@ -208,10 +208,12 @@ def backtrack(messages: MessagesState):
 
 def chat_completition(messages: MessagesState):
     new_messages_history = runtime_graph.goal
-    new_messages_history["messages"].append(
+    if isinstance(runtime_graph.temp_node, CompletitionNode):
+        new_messages_history["messages"].append(
         AIMessage(content=runtime_graph.temp_node.prompt)
     )
     result = parse_response(chat_completition_agent.invoke(new_messages_history))
+    runtime_graph.resolve_node(runtime_graph.temp_node, result)
     runtime_graph.temp_response.response = result
     runtime_graph.temp_response.resolved = True
     new_messages_history["messages"].append(AIMessage(content=result))
