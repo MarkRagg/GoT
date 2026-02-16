@@ -5,7 +5,7 @@ from langchain.tools import tool
 @tool
 def summing(x: int, y: int) -> int:
     """sum of two integer
-    
+
     Arguments:
         x(int): first number
         y(int): second number
@@ -16,7 +16,7 @@ def summing(x: int, y: int) -> int:
 @tool
 def sum_three(x: int, y: int, z: int):
     """sum of three integer
-    
+
     Arguments:
         x(int): first number
         y(int): second number
@@ -28,7 +28,7 @@ def sum_three(x: int, y: int, z: int):
 @tool
 def sum_four(x, y, z, a):
     """sum of four integer
-    
+
     Arguments:
         x(int): first number
         y(int): second number
@@ -41,7 +41,7 @@ def sum_four(x, y, z, a):
 @tool
 def minus(x: int, y: int) -> int:
     """minus of two integer
-    
+
     Arguments:
         x(int): first number
         y(int): second number
@@ -52,7 +52,7 @@ def minus(x: int, y: int) -> int:
 @tool
 def multiply(x: int, y: int) -> int:
     """multiply of two integer
-    
+
     Arguments:
         x(int): first number
         y(int): second number
@@ -63,7 +63,7 @@ def multiply(x: int, y: int) -> int:
 @tool
 def square_root(x: int) -> float:
     """Calculate the square root of x
-    
+
     Arguments:
         x(int): a non-negative number
     """

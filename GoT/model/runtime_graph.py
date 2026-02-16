@@ -78,6 +78,7 @@ class CompletitionNode(RuntimeNode):
         self.prompt = prompt
         self.response = response
 
+
 class BacktrackNode(RuntimeNode):
     def __init__(
         self,
@@ -87,6 +88,7 @@ class BacktrackNode(RuntimeNode):
         super().__init__(resolved)
         self.feedback = feedback
 
+
 class ContextNode(RuntimeNode):
     def __init__(
         self,
@@ -95,6 +97,7 @@ class ContextNode(RuntimeNode):
     ):
         super().__init__(resolved)
         self.context = context
+
 
 class ResponseNode(RuntimeNode):
     def __init__(
@@ -117,6 +120,7 @@ class Score(BaseModel):
     score: int
     description: str
 
+
 class Response(BaseModel):
     """Rapresents a response for a tool node.
 
@@ -127,6 +131,7 @@ class Response(BaseModel):
 
     response: str
     explanation: str
+
 
 class RuntimeGraph:
     def __init__(self):
@@ -173,7 +178,7 @@ class RuntimeGraph:
             messages.append(node.prompt)
 
         return MessagesState(messages=messages)
-    
+
     def clear(self):
         self.nodes = {}
         self.tools_available = {}
