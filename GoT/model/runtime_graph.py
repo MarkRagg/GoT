@@ -1,6 +1,6 @@
 from typing import Dict, List
 from langgraph.graph import MessagesState
-from langchain_core.messages import AnyMessage
+from langchain_core.messages import AnyMessage, HumanMessage
 from pydantic import BaseModel
 
 
@@ -152,10 +152,11 @@ class RuntimeGraph:
         self.tools_available.setdefault(call_node, tool_name)
 
     def resolve_node(self, node: RuntimeNode, response: str) -> None:
-        node.response = response
+        if isinstance(node, (ToolNode, TestNode, CompletitionNode)):
+            node.response = response
         node.resolved = True
 
-    def call_tool_node(self) -> ToolNode:  # TODO change name
+    def call_tool_node(self) -> ToolNode:
         nodes = list(self.nodes.keys())
         call_nodes = [n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)]
         return call_nodes[0]
@@ -170,12 +171,12 @@ class RuntimeGraph:
         return [self.tools_available[n] for n in resolved_nodes]
 
     def append_prompt_to_messages_state(
-        self, node: RuntimeNode
-    ) -> MessagesState:  # TODO change name
+        self, node: TestNode | ToolNode | CompletitionNode | GoalNode
+    ) -> MessagesState:
         messages: list[AnyMessage] = []
 
         if node.prompt:
-            messages.append(node.prompt)
+            messages.append(HumanMessage(content=node.prompt))
 
         return MessagesState(messages=messages)
 
