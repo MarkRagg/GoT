@@ -18,6 +18,7 @@ langgraph = "^1.0.6"
 dotenv = "^0.9.9"
 mlflow = "^3.9.0"
 lm-eval = "^0.4.10"
+boto3 = "^1.42.51"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.4.0"
