@@ -193,6 +193,7 @@ class RuntimeGraph:
         self.tools_available = {}
         self.temp_node = RuntimeNode()
         self.temp_response = ResponseNode(response="", resolved=False)
+        RuntimeNode._id_counter = 0 
 
     def print_mermaid(self) -> str:
         lines = []
