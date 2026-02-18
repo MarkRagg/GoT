@@ -1,3 +1,4 @@
+from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage
 from langchain.agents import create_agent
@@ -11,6 +12,8 @@ from GoT.tools.math_tool import (
     minus,
     square_root,
 )
+
+load_dotenv()
 
 mlflow.set_experiment("marcoraggini-experiment")
 mlflow.openai.autolog()
