@@ -1,9 +1,11 @@
 import math
-from GoT.model.graph_model import call_graph, invoke_graph
+from GoT.model.graph_model import call_graph
 from lm_eval.api.registry import register_model
 from lm_eval.api.model import LM
 
-from GoT.model.utils.utils import extract_output, normalize_number
+from GoT.model.ollama_llm import OllamaLLM
+from langchain_core.messages import HumanMessage
+from GoT.model.utils.utils import extract_output, normalize_number, parse_response
 
 
 class LangGraphLM:
@@ -20,6 +22,20 @@ class LangGraphLM:
             prompt = r["prompt"]
             result = call_graph(prompt)
             outputs.append(result["output"])
+        return outputs
+
+
+class OllamaTestLM:
+    def __init__(self):
+        pass
+
+    def generate(self, requests, max_new_tokens=None):
+        agent = OllamaLLM().create_custom_agent(tools=OllamaLLM().get_tools())
+        outputs = []
+        for r in requests:
+            prompt = r["prompt"]
+            result = agent.invoke({"messages": [HumanMessage(content=prompt)]})
+            outputs.append(normalize_number(parse_response(result)))
         return outputs
 
 
@@ -66,6 +82,61 @@ class LangGraphLMWrapper(LM):
                     else ""
                 )
                 normalize_output = normalize_number(output)
+
+                outputs.append(normalize_output if normalize_output else "")
+
+            except Exception as e:
+                print(f"Error in request {i}: {e}")
+                import traceback
+
+                traceback.print_exc()
+                outputs.append("")
+
+        return outputs
+
+    def loglikelihood(self, requests):
+        return super().loglikelihood(requests)
+
+    def loglikelihood_rolling(self, requests):
+        return super().loglikelihood_rolling(requests)
+
+
+@register_model("ollama_lm_test")
+class OllamaTestLMWrapper(LM):
+    def __init__(self, model_args=""):
+        super().__init__()
+        self.lm = OllamaTestLM()
+
+    def generate_until(self, requests, until=None, max_new_tokens=None, **kwargs):
+        """
+        Generate text until a stopping condition is met.
+        """
+        agent = OllamaLLM().create_custom_agent(tools=OllamaLLM().get_tools())
+        outputs = []
+        for i, request in enumerate(requests):
+            try:
+                # Extract the question directly from request.doc
+                # This is much simpler than parsing the full prompt
+                if hasattr(request, "doc") and isinstance(request.doc, dict):
+                    question = request.doc.get("question", "")
+                else:
+                    # Fallback: try to extract from arguments
+                    if hasattr(request, "arguments") and request.arguments:
+                        full_prompt = request.arguments[0][0]
+                        # Just take everything after the last "Answer:" as the question
+                        last_answer_idx = full_prompt.rfind("Answer:")
+                        if last_answer_idx != -1:
+                            question = full_prompt[
+                                last_answer_idx + 8 :
+                            ].strip()  # 8 = len("Answer:")
+                        else:
+                            question = full_prompt
+                    else:
+                        question = str(request)
+
+                # Call invoke_graph with just the question
+                result = agent.invoke({"messages": [HumanMessage(content=question)]})
+                normalize_output = normalize_number(parse_response(result))
 
                 outputs.append(normalize_output if normalize_output else "")
 
