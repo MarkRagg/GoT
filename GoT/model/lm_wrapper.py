@@ -3,7 +3,7 @@ from GoT.model.graph_model import invoke_graph, set_prompt
 from lm_eval.api.registry import register_model
 from lm_eval.api.model import LM
 
-from GoT.model.utils.utils import extract_output
+from GoT.model.utils.utils import extract_output, normalize_number
 
 
 class LangGraphLM:
@@ -62,24 +62,10 @@ class LangGraphLMWrapper(LM):
                 result = invoke_graph()
 
                 # Extract the final answer from the result
-                output = ""
-                if isinstance(result, dict) and "messages" in result:
-                    messages = result["messages"]
-                    if messages:
-                        # The last message should be the response
-                        last_msg = messages[-1]
+                output = result["output"] if isinstance(result, dict) and "output" in result else ""
+                normalize_output = normalize_number(output)
 
-                        # Extract content from message
-                        if hasattr(last_msg, "content"):
-                            output = last_msg.content
-                        elif isinstance(last_msg, dict) and "content" in last_msg:
-                            output = last_msg["content"]
-                        else:
-                            output = str(last_msg)
-                else:
-                    output = str(result) if result else ""
-
-                outputs.append(output if output else "")
+                outputs.append(normalize_output if normalize_output else "")
 
             except Exception as e:
                 print(f"Error in request {i}: {e}")
