@@ -1,5 +1,4 @@
 from venv import logger
-from dotenv import load_dotenv
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, MessagesState, START, END
 
@@ -24,7 +23,6 @@ from GoT.model.utils.utils import (
     remove_tools_from_list,
 )
 
-load_dotenv()
 
 # Defining agents
 starting_agent = OllamaLLM().create_custom_agent(
