@@ -117,27 +117,22 @@ class Score(BaseModel):
         description: str - A description or rationale for the assigned score.
     """
 
-    score: int = Field(
-        ...,
-        description="Integer score between 0 and 6 inclusive."
-    )
+    score: int = Field(..., description="Integer score between 0 and 6 inclusive.")
 
     description: str = Field(
         ...,
-        description="Short justification (1-3 sentences) explaining why the score was assigned."
+        description="Short justification (1-3 sentences) explaining why the score was assigned.",
     )
 
 
 class Response(BaseModel):
-    """Rapresents a response for a tool node.
-    """
+    """Rapresents a response for a tool node."""
+
     response: str = Field(
-        ...,
-        description="Final answer to the user request. No meta commentary."
+        ..., description="Final answer to the user request. No meta commentary."
     )
     explanation: str = Field(
-        ...,
-        description="Short reasoning explaining how the answer was produced."
+        ..., description="Short reasoning explaining how the answer was produced."
     )
 
 
@@ -193,7 +188,7 @@ class RuntimeGraph:
         self.tools_available = {}
         self.temp_node = RuntimeNode()
         self.temp_response = ResponseNode(response="", resolved=False)
-        RuntimeNode._id_counter = 0 
+        RuntimeNode._id_counter = 0
 
     def print_mermaid(self) -> str:
         lines = []
