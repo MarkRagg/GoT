@@ -32,6 +32,7 @@ class OllamaLLM:
                 base_url="http://localhost:11434/v1",
                 api_key="dummy",
                 model="ministral-3:8b",
+                temperature=0.5
             )
 
             self.system_prompt = SystemMessage(SYSTEM_PROMPT_GENERAL)
