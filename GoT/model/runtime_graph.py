@@ -1,7 +1,7 @@
 from typing import Dict, List
 from langgraph.graph import MessagesState
 from langchain_core.messages import AnyMessage, HumanMessage
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RuntimeNode:
@@ -117,20 +117,28 @@ class Score(BaseModel):
         description: str - A description or rationale for the assigned score.
     """
 
-    score: int
-    description: str
+    score: int = Field(
+        ...,
+        description="Integer score between 0 and 6 inclusive."
+    )
+
+    description: str = Field(
+        ...,
+        description="Short justification (1-3 sentences) explaining why the score was assigned."
+    )
 
 
 class Response(BaseModel):
     """Rapresents a response for a tool node.
-
-    Attributes:
-        response: str - The synthethic response.
-        explanation: str - An explanation or rationale for the response.
     """
-
-    response: str
-    explanation: str
+    response: str = Field(
+        ...,
+        description="Final answer to the user request. No meta commentary."
+    )
+    explanation: str = Field(
+        ...,
+        description="Short reasoning explaining how the answer was produced."
+    )
 
 
 class RuntimeGraph:
