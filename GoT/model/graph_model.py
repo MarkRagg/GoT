@@ -123,7 +123,6 @@ def tool_call(messages: MessagesState):
     parsed_res = f"Response: {parse_response_for_tool_node(res).response}\nExplanation: {parse_response_for_tool_node(res).explanation}"
     runtime_graph.resolve_node(call_node, parsed_res)
 
-    # Add test node
     test_node = TestNode(
         f"{parsed_res}",
         "",
@@ -221,9 +220,10 @@ def chat_completition(messages: MessagesState):
 content = ""
 
 
-def set_prompt(prompt: str):
+def call_graph(prompt: str):
     global content
     content = prompt
+    return invoke_graph()
 
 
 def invoke_graph():
@@ -248,7 +248,7 @@ def invoke_graph():
 
     graph = graph.compile()
 
-    logger.info(graph.get_graph().draw_mermaid())
+    # logger.info(graph.get_graph().draw_mermaid())
 
     res = graph.invoke(
         {
@@ -263,7 +263,7 @@ def invoke_graph():
 
     res["output"] = runtime_graph.temp_response.response
 
-    logger.info(res)
+    # logger.info(res)
     print(runtime_graph.print_mermaid())
     runtime_graph.clear()
     return res
