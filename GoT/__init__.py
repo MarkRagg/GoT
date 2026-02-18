@@ -2,11 +2,11 @@ import json
 import logging
 
 from lm_eval import evaluator, tasks
-from GoT.model.graph_model import invoke_graph, set_prompt
+from GoT.model.graph_model import call_graph
 from GoT.model.lm_wrapper import LangGraphLMWrapper
 
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger("GoT")
+# logging.basicConfig(level=logging.DEBUG)
+# logger = logging.getLogger("GoT")
 
 
 def lm_eval_benchmark():
@@ -17,7 +17,7 @@ def lm_eval_benchmark():
     results = evaluator.evaluate(
         lm=lm,
         task_dict=task_dict,
-        limit=5,  # Limit to 2 samples for quick testing
+        limit=10,  # Limit the number of samples
         log_samples=True,
     )
 
@@ -27,8 +27,7 @@ def lm_eval_benchmark():
 
 
 def custom_test():
-    set_prompt("What is 4726621 + 2 * 392 - 3432?")
-    invoke_graph()
+    call_graph("What is 4726621 + 2 * 392 - 3432?")
 
 
 def main():
@@ -37,4 +36,4 @@ def main():
 
 
 # let this be the last line of this file
-logger.info("GoT loaded")
+# logger.info("GoT loaded")

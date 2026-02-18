@@ -1,5 +1,5 @@
 import math
-from GoT.model.graph_model import invoke_graph, set_prompt
+from GoT.model.graph_model import call_graph, invoke_graph
 from lm_eval.api.registry import register_model
 from lm_eval.api.model import LM
 
@@ -18,8 +18,7 @@ class LangGraphLM:
         outputs = []
         for r in requests:
             prompt = r["prompt"]
-            set_prompt(prompt)  # Imposta il prompt globale
-            result = invoke_graph()  # usa la tua funzione
+            result = call_graph(prompt)
             outputs.append(result["output"])
         return outputs
 
@@ -58,11 +57,14 @@ class LangGraphLMWrapper(LM):
                         question = str(request)
 
                 # Call invoke_graph with just the question
-                set_prompt(question)
-                result = invoke_graph()
+                result = call_graph(question)
 
                 # Extract the final answer from the result
-                output = result["output"] if isinstance(result, dict) and "output" in result else ""
+                output = (
+                    result["output"]
+                    if isinstance(result, dict) and "output" in result
+                    else ""
+                )
                 normalize_output = normalize_number(output)
 
                 outputs.append(normalize_output if normalize_output else "")
@@ -142,8 +144,7 @@ class LangGraphBigBenchWrapper(LM):
             try:
                 question = self._extract_text_from_request(request)
 
-                set_prompt(question)
-                result = invoke_graph()
+                result = call_graph(question)
 
                 # Estrai l'output
                 output = extract_output(result)
@@ -191,8 +192,7 @@ class LangGraphBigBenchWrapper(LM):
                 full_text = context + continuation
 
                 # Chiama il grafo
-                set_prompt(full_text)
-                result = invoke_graph()
+                result = call_graph(full_text)
                 generated_output = extract_output(result)
 
                 # Calcola il score di likelihood
