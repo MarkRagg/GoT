@@ -124,3 +124,11 @@ def extract_output(result) -> str:
                 return str(last_msg["content"])
 
     return str(result) if result else ""
+
+
+def normalize_number(num_str: str) -> str:
+    """Remove commas and dollar sign."""
+    num_str = num_str.replace("$", "")
+    num_str = num_str.replace(",", "")
+    num_str = num_str.replace("*", "")
+    return num_str.strip()
