@@ -89,14 +89,14 @@ class BacktrackNode(RuntimeNode):
         self.feedback = feedback
 
 
-class ContextNode(RuntimeNode):
+class ReasoningNode(RuntimeNode):
     def __init__(
         self,
-        context: str,
+        reasoning: str,
         resolved: bool = False,
     ):
         super().__init__(resolved)
-        self.context = context
+        self.reasoning = reasoning
 
 
 class ResponseNode(RuntimeNode):
@@ -161,8 +161,8 @@ class RuntimeGraph:
 
     def call_tool_node(self) -> ToolNode:
         nodes = list(self.nodes.keys())
-        call_nodes = [n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)]
-        return call_nodes[0]
+        reasoning_nodes = [n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)]
+        return reasoning_nodes[0]
 
     def exist_tool_available(self) -> bool:
         nodes = list(self.nodes.keys())

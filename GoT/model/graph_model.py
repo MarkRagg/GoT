@@ -7,6 +7,7 @@ from GoT.model.runtime_graph import (
     BacktrackNode,
     CompletitionNode,
     GoalNode,
+    ReasoningNode,
     Response,
     RuntimeGraph,
     RuntimeNode,
@@ -79,6 +80,7 @@ def tool_expand(goal: MessagesState):
     ]
     res = starting_agent.invoke({"messages": messages})
     str_res = parse_response(res)
+    goal["messages"].append(AIMessage(content=str_res))
     tool_list = parse_tool_list(str_res)  # Toglie elementi inutili
     # add tool nodes in the runtime graph
     for tool in tool_list:
@@ -88,17 +90,28 @@ def tool_expand(goal: MessagesState):
             "",
             tool_name=tool,
         )
+        reasoning_node = ReasoningNode("")
         runtime_graph.add_node(tool_node)
+        runtime_graph.add_node(reasoning_node)
         runtime_graph.add_edge(
             runtime_graph.temp_node, tool_node
         )  # edge from goal to tool node
         runtime_graph.add_node(call_node)
-        runtime_graph.add_edge(tool_node, call_node)
+        runtime_graph.add_edge(tool_node, reasoning_node)
+        runtime_graph.add_edge(reasoning_node, call_node)
         runtime_graph.add_tool_link(call_node, tool)
     # extract a tool to call
     runtime_graph.temp_node = runtime_graph.call_tool_node()
-    return runtime_graph.append_prompt_to_messages_state(runtime_graph.temp_node)
+    return goal
 
+def tool_reasoning(messages: MessagesState):
+    messages["messages"].append(HumanMessage("Please, reason about how to use these tools to solve the problem, without solving it."))
+    result = parse_response(starting_agent.invoke(messages))
+    messages["messages"].append(AIMessage(result))
+    runtime_graph.resolve_node(runtime_graph.temp_node, result)
+    runtime_graph.temp_node = runtime_graph.nodes.get(runtime_graph.temp_node, [])[0]
+    messages["messages"].append(HumanMessage(runtime_graph.temp_node.prompt))
+    return messages
 
 def tool_call(messages: MessagesState):
     # It calls the llm and it resolves the call node
@@ -196,7 +209,7 @@ def backtrack(messages: MessagesState):
     runtime_graph.add_edge(
         backtrack_node, runtime_graph.temp_node
     )  # tool call node that we want to resolve
-    messages = runtime_graph.append_prompt_to_messages_state(runtime_graph.temp_node)
+    # messages = runtime_graph.append_prompt_to_messages_state(runtime_graph.temp_node)
     messages.get("messages", []).append(AIMessage(backtrack_node.feedback))
     return messages
 
@@ -230,15 +243,17 @@ def invoke_graph():
     graph = StateGraph(MessagesState)
     graph.add_node(goal)
     graph.add_node(tool_expand)
+    graph.add_node(tool_reasoning)
     graph.add_node(tool_call)
     graph.add_node(backtrack)
     graph.add_node(chat_completition)
     graph.add_node(response_evaluation)
     graph.add_edge(START, "goal")
     graph.add_edge("goal", "tool_expand")
-    graph.add_edge("tool_expand", "tool_call")
+    graph.add_edge("tool_expand", "tool_reasoning")
+    graph.add_edge("tool_reasoning", "tool_call")
     graph.add_edge("tool_call", "response_evaluation")
-    graph.add_edge("backtrack", "tool_call")
+    graph.add_edge("backtrack", "tool_reasoning")
     graph.add_edge("chat_completition", END)
     graph.add_conditional_edges(
         "response_evaluation",
