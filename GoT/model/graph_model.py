@@ -104,14 +104,20 @@ def tool_expand(goal: MessagesState):
     runtime_graph.temp_node = runtime_graph.call_tool_node()
     return goal
 
+
 def tool_reasoning(messages: MessagesState):
-    messages["messages"].append(HumanMessage("Please, reason about how to use these tools to solve the problem, without solving it."))
+    messages["messages"].append(
+        HumanMessage(
+            "Please, reason about how to use these tools to solve the problem, without solving it."
+        )
+    )
     result = parse_response(starting_agent.invoke(messages))
     messages["messages"].append(AIMessage(result))
     runtime_graph.resolve_node(runtime_graph.temp_node, result)
     runtime_graph.temp_node = runtime_graph.nodes.get(runtime_graph.temp_node, [])[0]
     messages["messages"].append(HumanMessage(runtime_graph.temp_node.prompt))
     return messages
+
 
 def tool_call(messages: MessagesState):
     # It calls the llm and it resolves the call node

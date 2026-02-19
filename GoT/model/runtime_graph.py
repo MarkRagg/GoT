@@ -161,7 +161,9 @@ class RuntimeGraph:
 
     def call_tool_node(self) -> ToolNode:
         nodes = list(self.nodes.keys())
-        reasoning_nodes = [n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)]
+        reasoning_nodes = [
+            n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)
+        ]
         return reasoning_nodes[0]
 
     def exist_tool_available(self) -> bool:
