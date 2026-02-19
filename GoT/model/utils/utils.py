@@ -132,3 +132,19 @@ def normalize_number(num_str: str) -> str:
     num_str = num_str.replace(",", "")
     num_str = num_str.replace("*", "")
     return num_str.strip()
+
+def print_benchmark_result(results: dict) -> None:
+    samples = results["samples"]["gsm8k"]
+
+    flex_samples = [
+        s for s in samples
+        if "flexible" in s.get("filter", "")
+    ]
+
+    n_total = len(flex_samples)
+    n_correct = sum(1 for s in flex_samples if s.get("exact_match", 0) == 1.0)
+    n_wrong = n_total - n_correct
+
+    print(f"Total (only flexible): {n_total}")
+    print(f"Correct answers (flexible): {n_correct}")
+    print(f"Wrong answers (flexible): {n_wrong}")
