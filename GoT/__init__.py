@@ -4,6 +4,7 @@ import logging
 from lm_eval import evaluator, tasks
 from GoT.model.graph_model import call_graph
 from GoT.model.lm_wrapper import LangGraphLMWrapper, OllamaTestLMWrapper
+from GoT.model.utils.utils import print_benchmark_result
 
 # logging.basicConfig(level=logging.DEBUG)
 # logger = logging.getLogger("GoT")
@@ -25,6 +26,8 @@ def lm_eval_test_benchmark():
     with open("ollama_test_benchmark_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
+    print_benchmark_result(results)
+
 def lm_eval_graph_benchmark():
     task_list = ["gsm8k"]
     lm = LangGraphLMWrapper()
@@ -41,6 +44,8 @@ def lm_eval_graph_benchmark():
     with open("ollama_test_benchmark_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
+    print_benchmark_result(results)
+
 
 def custom_test():
     call_graph("What is 4726621 + 2 * 392 - 3432?")
@@ -48,7 +53,7 @@ def custom_test():
 
 def main():
     # It could be changed with custom_test() to test a custom problem instead of the benchmark
-    lm_eval_graph_benchmark()
+    lm_eval_test_benchmark()
 
 
 # let this be the last line of this file
