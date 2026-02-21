@@ -270,17 +270,20 @@ def invoke_graph():
     graph = graph.compile()
 
     # logger.info(graph.get_graph().draw_mermaid())
-
-    res = graph.invoke(
-        {
-            "messages": [
-                {
-                    "role": "user",
-                    "content": content,
-                }
-            ]
-        }
-    )
+    try:
+        res = graph.invoke(
+            {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": content,
+                    }
+                ]
+            }
+        )
+    except Exception as e:
+        runtime_graph.clear()
+        raise e
 
     res["output"] = runtime_graph.temp_response.response
 
