@@ -6,11 +6,10 @@ import mlflow
 
 from GoT.tools.math_tool import (
     multiply,
-    sum_four,
-    sum_three,
     summing,
     minus,
     square_root,
+    divide,
 )
 
 load_dotenv()
@@ -39,12 +38,12 @@ class OllamaLLM:
 
             self.agent = create_agent(
                 model=self.ollamaLLM,
-                tools=[sum_four, summing, minus, sum_three, square_root],
+                tools=[summing, minus, square_root, multiply, divide],
                 system_prompt=self.system_prompt,
             )
 
     def get_tools(self):
-        return [sum_four, summing, minus, sum_three, square_root, multiply]
+        return [summing, minus, square_root, multiply, divide]
 
     def create_custom_agent(
         self,
