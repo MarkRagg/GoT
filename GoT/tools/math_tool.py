@@ -3,43 +3,43 @@ from langchain.tools import tool
 
 
 @tool
-def summing(x: int, y: int) -> int:
-    """sum of two integer
+def summing(x: float, y: float) -> float:
+    """sum of two float numbers
 
     Arguments:
-        x(int): first number
-        y(int): second number
+        x(float): first number
+        y(float): second number
     """
     return x + y
 
 @tool
-def minus(x: int, y: int) -> int:
-    """minus of two integer
+def minus(x: float, y: float) -> float:
+    """minus of two float numbers
 
     Arguments:
-        x(int): first number
-        y(int): second number
+        x(float): first number
+        y(float): second number
     """
     return x - y
 
 
 @tool
-def multiply(x: int, y: int) -> int:
-    """multiply of two integer
+def multiply(x: float, y: float) -> float:
+    """multiply of two float numbers
 
     Arguments:
-        x(int): first number
-        y(int): second number
+        x(float): first number
+        y(float): second number
     """
     return x * y
 
 @tool
-def divide(x: int, y: int) -> float:
-    """divide of two integer
+def divide(x: float, y: float) -> float:
+    """divide of two float numbers
 
     Arguments:
-        x(int): first number
-        y(int): second number
+        x(float): first number
+        y(float): second number
     """
     if y == 0:
         raise ValueError("Cannot divide by zero")
