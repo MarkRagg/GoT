@@ -129,7 +129,7 @@ class Response(BaseModel):
     """Rapresents a response for a tool node."""
 
     response: str = Field(
-        ..., description="Final answer to the user request. No meta commentary. If the answer is a number, respond only with the number, without any text."
+        ..., description="Final answer to the user request. No meta commentary. If the answer is a number, respond only with the number (but in string), without any text."
     )
     explanation: str = Field(
         ..., description="Short reasoning explaining how the answer was produced."

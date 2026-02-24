@@ -86,7 +86,7 @@ def tool_expand(goal: MessagesState):
     for tool in tool_list:
         tool_node = RuntimeNode(resolved=True)
         call_node = ToolNode(
-            f"Please, resolve the problem with the tool: {tool}",
+            "Please, resolve the problem with the tools given, you MUST follow the previous reasoning.",
             "",
             tool_name=tool,
         )
@@ -115,7 +115,7 @@ def tool_reasoning(messages: MessagesState):
     messages["messages"].append(AIMessage(result))
     runtime_graph.resolve_node(runtime_graph.temp_node, result)
     runtime_graph.temp_node = runtime_graph.nodes.get(runtime_graph.temp_node, [])[0]
-    messages["messages"].append(HumanMessage(runtime_graph.temp_node.prompt))
+    messages["messages"].append(SystemMessage(runtime_graph.temp_node.prompt))
     return messages
 
 
@@ -123,9 +123,7 @@ def tool_call(messages: MessagesState):
     # It calls the llm and it resolves the call node
     call_node = runtime_graph.temp_node
     tool_agent = OllamaLLM().create_custom_agent(
-        remove_tools_from_list(
-            OllamaLLM().get_tools(), runtime_graph.get_resolved_tools()
-        ),
+        OllamaLLM().get_tools(),
         SystemMessage(
             "You are an assistant specialized in tools. Your goal is to resolve the problem with "
             " the tool that the user indicates to you. You MUST use the tool that user indicates to you."
@@ -136,7 +134,7 @@ def tool_call(messages: MessagesState):
         response_format=Response,
     )
 
-    res = tool_agent.invoke(messages)
+    res = tool_agent.invoke({"messages": messages["messages"], "tool_choice": Response})
     tool_used = extract_tool_used(res)
     runtime_graph.temp_response.response = parse_response_for_tool_node(res).response
     parsed_res = f"Response: {parse_response_for_tool_node(res).response}\nExplanation: {parse_response_for_tool_node(res).explanation}"
@@ -174,10 +172,9 @@ def response_evaluation(messages: MessagesState):
         ),
     ]
 
-    score_res = parse_score(judge_agent.invoke({"messages": judge_messages}))
+    score_res = parse_score(judge_agent.invoke({"messages": judge_messages, "tool_choice": Score}))
     test_node.score = score_res.score
     runtime_graph.resolve_node(test_node, score_res.description)
-
     return messages
 
 
