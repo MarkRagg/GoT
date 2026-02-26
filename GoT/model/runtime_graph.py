@@ -129,7 +129,8 @@ class Response(BaseModel):
     """Rapresents a response for a tool node."""
 
     response: str = Field(
-        ..., description="Final answer to the user request. No meta commentary. If the answer is a number, respond only with the number (but in string), without any text."
+        ...,
+        description="Final answer to the user request. No meta commentary. If the answer is a number, respond only with the number (but in string), without any text.",
     )
     explanation: str = Field(
         ..., description="Short reasoning explaining how the answer was produced."
@@ -186,11 +187,11 @@ class RuntimeGraph:
         return MessagesState(messages=messages)
 
     def clear(self):
+        RuntimeNode._id_counter = 0
         self.nodes = {}
         self.tools_available = {}
         self.temp_node = RuntimeNode()
         self.temp_response = ResponseNode(response="", resolved=False)
-        RuntimeNode._id_counter = 0
 
     def print_mermaid(self) -> str:
         lines = []
