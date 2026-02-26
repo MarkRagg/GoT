@@ -21,7 +21,6 @@ from GoT.model.utils.utils import (
     parse_response_for_tool_node,
     parse_score,
     parse_tool_list,
-    remove_tools_from_list,
 )
 
 
@@ -44,7 +43,7 @@ judge_agent = OllamaLLM().create_custom_agent(
     [],
     SystemMessage(
         "You are an assistant specialized in validation of response, like an LLM-as-a-judge. "
-        "Your duty is to score, from 0 to 6, the response that user gives to you and assign to it a score. "
+        "Your duty is to score, from 0 to 6, the response that user gives to you and assign to it a score. You can not give the response, but can give a hint for the solution. "
         "You MUST respond ONLY using the Score function. "
         "Do not write natural language outside the function. "
         "If you fail to respect the format, the evaluation will fail."
@@ -73,7 +72,7 @@ def goal(prompt: MessagesState):
 
 def tool_expand(goal: MessagesState):
     msg = parse_response(goal)
-    sys_msg = "Which tools that I have can I use to solve this problem? Please make a list using '-' to denote each tool in a probabilistic order, don't use this character for other reasons."
+    sys_msg = "Please make a list using '-' to denote each tool in a probabilistic order, don't use this character for other reasons. Select only the tool(s) you want to use to solve this problem."
     messages = [
         HumanMessage(msg),
         SystemMessage(sys_msg),
@@ -163,7 +162,7 @@ def response_evaluation(messages: MessagesState):
     # Create a proper message for the judge with the solution
     judge_messages = [
         HumanMessage(content="Original task:\n" + parse_response(runtime_graph.goal)),
-        HumanMessage(content="Solution:\n" + call_node_response),
+        HumanMessage(content=call_node_response),
         SystemMessage(
             content="Score this solution based on correctness and following instructions."
         ),
@@ -172,7 +171,9 @@ def response_evaluation(messages: MessagesState):
         ),
     ]
 
-    score_res = parse_score(judge_agent.invoke({"messages": judge_messages, "tool_choice": Score}))
+    score_res = parse_score(
+        judge_agent.invoke({"messages": judge_messages, "tool_choice": Score})
+    )
     test_node.score = score_res.score
     runtime_graph.resolve_node(test_node, score_res.description)
     return messages

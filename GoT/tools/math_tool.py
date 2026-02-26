@@ -12,6 +12,7 @@ def summing(x: float, y: float) -> float:
     """
     return x + y
 
+
 @tool
 def minus(x: float, y: float) -> float:
     """minus of two float numbers
@@ -32,6 +33,7 @@ def multiply(x: float, y: float) -> float:
         y(float): second number
     """
     return x * y
+
 
 @tool
 def divide(x: float, y: float) -> float:

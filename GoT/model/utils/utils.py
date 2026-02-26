@@ -131,11 +131,22 @@ def normalize_number(num_str: str) -> str:
     num_str = num_str.replace("$", "")
     num_str = num_str.replace(",", "")
     num_str = num_str.replace("*", "")
-    return num_str.strip()
+    num_str = num_str.strip()
+
+    # Remove trailing .0 (and only .0)
+    if num_str.endswith(".0"):
+        # Ensure it's actually a valid number before trimming
+        try:
+            if float(num_str).is_integer():
+                num_str = str(int(float(num_str)))
+        except ValueError:
+            pass
+
+    return num_str
 
 
-def print_benchmark_result(results: dict) -> None:
-    samples = results["samples"]["gsm8k"]
+def print_benchmark_result(results: dict, task_name: str) -> None:
+    samples = results["samples"][task_name]
 
     flex_samples = [s for s in samples if "flexible" in s.get("filter", "")]
 

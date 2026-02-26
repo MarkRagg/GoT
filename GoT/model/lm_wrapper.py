@@ -264,7 +264,7 @@ class LangGraphBigBenchWrapper(LM):
 
                 # Chiama il grafo
                 result = call_graph(full_text)
-                generated_output = extract_output(result)
+                generated_output = normalize_number(extract_output(result))
 
                 # Calcola il score di likelihood
                 score = self._calculate_likelihood_score(
