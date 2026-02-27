@@ -99,7 +99,7 @@ def tool_expand(goal: MessagesState):
         runtime_graph.add_edge(tool_node, reasoning_node)
         runtime_graph.add_edge(reasoning_node, call_node)
         runtime_graph.add_tool_link(call_node, tool)
-    # extract a tool to call
+    # extract a reasoning node to resolve
     runtime_graph.temp_node = runtime_graph.call_tool_node()
     return goal
 
@@ -114,6 +114,8 @@ def tool_reasoning(messages: MessagesState):
     messages["messages"].append(AIMessage(result))
     runtime_graph.resolve_node(runtime_graph.temp_node, result)
     runtime_graph.temp_node = runtime_graph.nodes.get(runtime_graph.temp_node, [])[0]
+    if not isinstance(runtime_graph.temp_node, ToolNode):
+        raise TypeError("Expected ToolNode after reasoning")
     messages["messages"].append(SystemMessage(runtime_graph.temp_node.prompt))
     return messages
 

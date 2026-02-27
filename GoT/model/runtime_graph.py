@@ -160,7 +160,7 @@ class RuntimeGraph:
             node.response = response
         node.resolved = True
 
-    def call_tool_node(self) -> ToolNode:
+    def call_tool_node(self) -> ReasoningNode:
         nodes = list(self.nodes.keys())
         reasoning_nodes = [
             n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)
