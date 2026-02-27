@@ -269,7 +269,7 @@ def invoke_graph():
 
     graph = graph.compile()
 
-    # logger.info(graph.get_graph().draw_mermaid())
+    logger.info(graph.get_graph().draw_mermaid())
     try:
         res = graph.invoke(
             {
@@ -287,7 +287,7 @@ def invoke_graph():
 
     res["output"] = runtime_graph.temp_response.response
 
-    # logger.info(res)
+    logger.info(res)
     print(runtime_graph.print_mermaid())
     runtime_graph.clear()
     return res
