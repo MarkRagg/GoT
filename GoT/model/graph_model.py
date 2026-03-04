@@ -58,6 +58,16 @@ judge_agent = OllamaLLM().create_custom_agent(
     response_format=Score,
 )
 
+crafter_agent = OllamaLLM().create_custom_agent(
+    OllamaLLM().get_craft_tool(),
+    SystemMessage(
+        "You are an assistant specialized in crafting tools. Your goal is to craft a tool and run it to solve the problem."
+        "You MUST respond ONLY using the tool that you have at your disposal. "
+        "Do not write natural language outside the tool. "
+    ),
+    response_format=Response,
+) 
+
 # Defining runtime graph
 runtime_graph = RuntimeGraph()
 

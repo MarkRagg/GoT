@@ -12,6 +12,8 @@ from GoT.tools.math_tool import (
     divide,
 )
 
+from GoT.tools.craft_tool import python_tool, install_dependency
+
 load_dotenv()
 
 mlflow.set_experiment("marcoraggini-experiment")
@@ -44,6 +46,9 @@ class OllamaLLM:
 
     def get_tools(self):
         return [summing, minus, square_root, multiply, divide]
+    
+    def get_craft_tool(self):
+        return [python_tool, install_dependency]
 
     def create_custom_agent(
         self,
