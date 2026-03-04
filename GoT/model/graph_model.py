@@ -6,6 +6,7 @@ from GoT.model.ollama_llm import OllamaLLM
 from GoT.model.runtime_graph import (
     BacktrackNode,
     CompletitionNode,
+    CraftingNode,
     GoalNode,
     ReasoningNode,
     Response,
@@ -190,6 +191,29 @@ def response_evaluation(messages: MessagesState):
     runtime_graph.resolve_node(test_node, score_res.description)
     return messages
 
+def crafting(messages: MessagesState):
+    crafting_node = CraftingNode(response="", tool_crafted="", resolved=False)
+    runtime_graph.add_node(crafting_node)
+    runtime_graph.temp_node = crafting_node
+    crafting_messages = [
+        HumanMessage(content="Original task:\n" + parse_response(runtime_graph.goal)),
+        SystemMessage(content="Craft a tool to solve this problem, run it and give the response."),
+    ]
+    craft_res = crafter_agent.invoke({"messages": crafting_messages})
+    runtime_graph.temp_response.response = parse_response_for_tool_node(craft_res).response
+    parsed_res = f"Response: {parse_response_for_tool_node(craft_res).response}\nExplanation: {parse_response_for_tool_node(craft_res).explanation}"    
+    runtime_graph.resolve_node(crafting_node, parsed_res)
+    test_node = TestNode(
+        f"{parsed_res}",
+        "",
+        score=0,
+        tool_used="",
+    )
+    runtime_graph.add_node(test_node)
+    runtime_graph.add_edge(crafting_node, test_node)
+    runtime_graph.temp_node = test_node
+    messages["messages"].append(AIMessage(parsed_res))
+    return messages
 
 def test_result(messages: MessagesState):
     n = runtime_graph.exist_tool_available()
@@ -203,6 +227,8 @@ def test_result(messages: MessagesState):
         return END
     elif test_node.score < 5 and n is True:
         return "backtrack"
+    elif test_node.score < 5 and n is False and runtime_graph.is_craftin_node_resolved():
+        return "crafting"
     else:
         chat_completition_node = CompletitionNode(
             "Please, solve this problem",
@@ -262,6 +288,7 @@ def invoke_graph():
     graph.add_node(tool_reasoning)
     graph.add_node(tool_call)
     graph.add_node(backtrack)
+    graph.add_node(crafting)
     graph.add_node(chat_completition)
     graph.add_node(response_evaluation)
     graph.add_edge(START, "goal")
@@ -270,11 +297,12 @@ def invoke_graph():
     graph.add_edge("tool_reasoning", "tool_call")
     graph.add_edge("tool_call", "response_evaluation")
     graph.add_edge("backtrack", "tool_reasoning")
+    graph.add_edge("crafting", "response_evaluation")
     graph.add_edge("chat_completition", END)
     graph.add_conditional_edges(
         "response_evaluation",
         test_result,
-        {"backtrack": "backtrack", "chat_completition": "chat_completition", END: END},
+        {"crafting": "crafting", "backtrack": "backtrack", "chat_completition": "chat_completition", END: END},
     )
 
     graph = graph.compile()

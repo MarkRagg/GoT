@@ -108,6 +108,17 @@ class ResponseNode(RuntimeNode):
         super().__init__(resolved)
         self.response = response
 
+class CraftingNode(RuntimeNode):
+    def __init__(
+        self,
+        response: str,
+        tool_crafted: str = "",
+        resolved: bool = False,
+    ):
+        super().__init__(resolved)
+        self.response = response
+        self.tool_crafted = tool_crafted
+
 
 class Score(BaseModel):
     """Rapresents a score for a test node.
@@ -176,6 +187,13 @@ class RuntimeGraph:
         resolved_nodes = [t for t in self.tools_available.keys() if t.resolved is True]
         return [self.tools_available[n] for n in resolved_nodes]
 
+    def is_craftin_node_resolved(self) -> bool:
+        nodes = list(self.nodes.keys())
+        crafting_nodes = [
+            n for n in nodes if (isinstance(n, CraftingNode) and n.resolved)
+        ]
+        return True if crafting_nodes else False
+    
     def append_prompt_to_messages_state(
         self, node: TestNode | ToolNode | CompletitionNode | GoalNode
     ) -> MessagesState:
