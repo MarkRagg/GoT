@@ -17,7 +17,8 @@ load_dotenv()
 
 
 def lm_eval_test_benchmark():
-    task_list = ["gsm8k"]
+    task_name = "gsm8k"
+    task_list = [task_name]
     test_lm = OllamaTestLMWrapper()
     task_dict = tasks.get_task_dict(task_list)
 
@@ -32,7 +33,7 @@ def lm_eval_test_benchmark():
     with open("ollama_test_benchmark_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
-    print_benchmark_result(results)
+    print_benchmark_result(results, task_name)
 
 
 def lm_eval_graph_benchmark():
