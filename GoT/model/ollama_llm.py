@@ -1,3 +1,5 @@
+import os
+
 from dotenv import load_dotenv
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import SystemMessage
@@ -32,7 +34,15 @@ class OllamaLLM:
             self.ollamaLLM = ChatOpenAI(
                 base_url="http://localhost:11434/v1",
                 api_key="dummy",
-                model="ministral-3:8b",
+                model="qwen3:8b",
+                temperature=0.5,
+                reasoning_effort="none",
+            )
+
+            self.remoteLLM = ChatOpenAI(
+                base_url="https://openrouter.ai/api/v1",
+                api_key=os.environ.get("OPEN_ROUTER_KEY"),
+                model="openai/gpt-oss-120b:free",
                 temperature=0.5,
             )
 
