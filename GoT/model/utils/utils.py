@@ -145,15 +145,15 @@ def normalize_number(num_str: str) -> str:
     return num_str
 
 
-def print_benchmark_result(results: dict, task_name: str) -> None:
+def print_benchmark_result(results: dict, task_name: str, filter: str) -> None:
     samples = results["samples"][task_name]
 
-    flex_samples = [s for s in samples if "flexible" in s.get("filter", "")]
+    flex_samples = [s for s in samples if filter in s.get("filter", "")]
 
     n_total = len(flex_samples)
     n_correct = sum(1 for s in flex_samples if s.get("exact_match", 0) == 1.0)
     n_wrong = n_total - n_correct
 
-    print(f"Total (only flexible): {n_total}")
-    print(f"Correct answers (flexible): {n_correct}")
-    print(f"Wrong answers (flexible): {n_wrong}")
+    print(f"Total: {n_total}")
+    print(f"Correct answers (filter={filter}): {n_correct}")
+    print(f"Wrong answers (filter={filter}): {n_wrong}")
