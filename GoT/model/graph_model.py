@@ -64,6 +64,7 @@ crafter_agent = OllamaLLM().create_custom_agent(
     SystemMessage(
         "You are an assistant specialized in crafting tools. Your goal is to craft a tool and run it to solve the problem."
         "You MUST respond ONLY using the tool that you have at your disposal. "
+        "No comment in the python interpreter will be allowed. "
         "Do not write natural language outside the tool. "
     ),
     response_format=Response,
@@ -194,6 +195,7 @@ def response_evaluation(messages: MessagesState):
 def crafting(messages: MessagesState):
     crafting_node = CraftingNode(response="", tool_crafted="", resolved=False)
     runtime_graph.add_node(crafting_node)
+    runtime_graph.add_edge(runtime_graph.temp_node, crafting_node)
     runtime_graph.temp_node = crafting_node
     crafting_messages = [
         HumanMessage(content="Original task:\n" + parse_response(runtime_graph.goal)),
@@ -227,7 +229,7 @@ def test_result(messages: MessagesState):
         return END
     elif test_node.score < 5 and n is True:
         return "backtrack"
-    elif test_node.score < 5 and n is False and runtime_graph.is_craftin_node_resolved():
+    elif test_node.score < 5 and n is False and not runtime_graph.is_craftin_node_resolved():
         return "crafting"
     else:
         chat_completition_node = CompletitionNode(
