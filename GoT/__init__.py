@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from dotenv import load_dotenv
 
 from lm_eval import evaluator, tasks
@@ -7,6 +8,7 @@ from GoT.model.graph_model import call_graph
 from GoT.model.lm_wrapper import (
     LangGraphLMWrapper,
     OllamaTestLMWrapper,
+    LangGraphBigBenchWrapper
 )
 from GoT.model.utils.utils import print_benchmark_result
 
@@ -15,6 +17,7 @@ logger = logging.getLogger("GoT")
 
 load_dotenv()
 
+# Possible filter = "flexible", "none", "strict"
 
 def lm_eval_test_benchmark():
     task_name = "gsm8k"
@@ -33,13 +36,13 @@ def lm_eval_test_benchmark():
     with open("ollama_test_benchmark_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
-    print_benchmark_result(results, task_name)
+    print_benchmark_result(results, task_name, filter="none")
 
 
 def lm_eval_graph_benchmark():
-    task_name = "gsm8k"
+    task_name = "bigbench_logical_sequence_generate_until"
     task_list = [task_name]
-    lm = LangGraphLMWrapper()
+    lm = LangGraphBigBenchWrapper()
     task_dict = tasks.get_task_dict(task_list)
 
     results = evaluator.evaluate(
@@ -53,7 +56,7 @@ def lm_eval_graph_benchmark():
     with open("ollama_graph_benchmark_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
-    print_benchmark_result(results, task_name)
+    print_benchmark_result(results, task_name, filter="none")
 
 
 def custom_test():
@@ -64,8 +67,7 @@ def custom_test():
 
 def main():
     # It could be changed with custom_test() to test a custom problem instead of the benchmark
-    lm_eval_graph_benchmark()
-
+    custom_test()
 
 # let this be the last line of this file
 logger.info("GoT loaded")
