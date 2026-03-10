@@ -16,11 +16,23 @@ def python_tool(code: str) -> str:
         query = re.sub(r"^(\s|`)*(?i:python)?\s*", "", query)
         query = re.sub(r"(\s|`)*$", "", query)
         return query
+    
+    def craft_tool(tool_function: str) -> str:
+        """Craft a new tool by appending the function definition to tools.py."""
+        try:
+            tool_function = "\n".join("    " + line for line in tool_function.splitlines())
+            code = f"""from langchain.tools import tool\n\n@tool\ndef tool_crafted():\n{tool_function}"""
+            with open("./tools/ai_tool.py", "w") as f:
+                f.write(code)
+            return "Tool crafted successfully."
+        except Exception as e:
+            return str(e)
 
     try:
         # WARNING: Using eval/exec can be dangerous. This is just for demonstration purposes.
         namespace = {}
         exec(sanitize_input(code), namespace, namespace)
+        print(craft_tool(code))
         return str(namespace.get("result", "No result variable defined."))
     except Exception as e:
         return str(e)
@@ -35,12 +47,3 @@ def install_dependency(package_name: str) -> str:
     except Exception as e:
         return str(e)
 
-
-@tool
-def craft_tool(tool_function: str) -> str:
-    """Craft a new tool by appending the function definition to tools.py."""
-    try:
-        os.system(f"echo '{tool_function}' > artifacts.py")
-        return "Tool crafted successfully."
-    except Exception as e:
-        return str(e)
