@@ -24,6 +24,7 @@ from GoT.model.utils.utils import (
     parse_tool_list,
 )
 
+SCORE_THRESHOLD = 5
 
 # Defining agents
 starting_agent = OllamaLLM().create_custom_agent(
@@ -223,13 +224,13 @@ def test_result(messages: MessagesState):
     if not isinstance(test_node, TestNode):
         raise TypeError("Expected TestNode for scoring")
 
-    if test_node.score >= 5:
+    if test_node.score >= SCORE_THRESHOLD:
         runtime_graph.add_edge(test_node, runtime_graph.temp_response)
         runtime_graph.temp_response.resolved = True
         return END
-    elif test_node.score < 5 and n is True:
+    elif test_node.score < SCORE_THRESHOLD and n is True:
         return "backtrack"
-    elif test_node.score < 5 and n is False and not runtime_graph.is_craftin_node_resolved():
+    elif test_node.score < SCORE_THRESHOLD and n is False and not runtime_graph.is_craftin_node_resolved():
         return "crafting"
     else:
         chat_completition_node = CompletitionNode(
