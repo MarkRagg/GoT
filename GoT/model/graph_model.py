@@ -63,7 +63,7 @@ judge_agent = OllamaLLM().create_custom_agent(
 crafter_agent = OllamaLLM().create_custom_agent(
     OllamaLLM().get_craft_tool(),
     SystemMessage(
-        "You are an assistant specialized in crafting tools. Your goal is to craft a tool and run it to solve the problem."
+        "You are an assistant specialized in crafting tools. Your goal is to craft a tool that help to other agents to solve the problem."
         "You MUST respond ONLY using the tool that you have at your disposal. "
         "No comment in the python interpreter will be allowed. "
         "Do not write natural language outside the tool. "
@@ -200,7 +200,7 @@ def crafting(messages: MessagesState):
     runtime_graph.temp_node = crafting_node
     crafting_messages = [
         HumanMessage(content="Original task:\n" + parse_response(runtime_graph.goal)),
-        SystemMessage(content="Craft a tool to solve this problem, run it and give the response."),
+        SystemMessage(content="Craft a tool to solve this problem using craft_tool. It must be a function"),
     ]
     craft_res = crafter_agent.invoke({"messages": crafting_messages})
     runtime_graph.temp_response.response = parse_response_for_tool_node(craft_res).response

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import re
 
 from langchain.tools import tool
@@ -17,22 +18,10 @@ def python_tool(code: str) -> str:
         query = re.sub(r"(\s|`)*$", "", query)
         return query
     
-    def craft_tool(tool_function: str) -> str:
-        """Craft a new tool by appending the function definition to tools.py."""
-        try:
-            tool_function = "\n".join("    " + line for line in tool_function.splitlines())
-            code = f"""from langchain.tools import tool\n\n@tool\ndef tool_crafted():\n{tool_function}"""
-            with open("./tools/ai_tool.py", "w") as f:
-                f.write(code)
-            return "Tool crafted successfully."
-        except Exception as e:
-            return str(e)
-
     try:
         # WARNING: Using eval/exec can be dangerous. This is just for demonstration purposes.
         namespace = {}
         exec(sanitize_input(code), namespace, namespace)
-        print(craft_tool(code))
         return str(namespace.get("result", "No result variable defined."))
     except Exception as e:
         return str(e)
@@ -47,3 +36,29 @@ def install_dependency(package_name: str) -> str:
     except Exception as e:
         return str(e)
 
+@tool
+def craft_tool(tool_function: str) -> str:
+    """Save the function definition provided by the LLM as a tool that can be used by other agents.
+      The function should be defined as a python function.
+      The function should be general and reusable, and should not be specific to the current problem.
+      The function should be defined in a way that it can be imported and used by other agents."""
+    
+    def sanitize_input(query: str) -> str:
+        """Sanitize input to the python REPL.
+        Remove whitespace, backtick & python
+        (if llm mistakes python console as terminal)
+        """
+        query = re.sub(r"^(\s|`)*(?i:python)?\s*", "", query)
+        query = re.sub(r"(\s|`)*$", "", query)
+        return query
+
+    try:
+        base_dir = Path(__file__).parent
+        file_path = base_dir / "ai_tool.py"
+        code = f"""\n\n@tool\n{sanitize_input(tool_function)}"""
+        with open(file_path, "a") as f:
+            f.write(code)
+        return "Tool crafted successfully."
+    except Exception as e:
+        print(e)
+        return str(e)
