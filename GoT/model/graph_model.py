@@ -21,7 +21,6 @@ from GoT.model.utils.utils import (
     parse_response,
     parse_response_for_tool_node,
     parse_score,
-    parse_tool_list,
 )
 
 SCORE_THRESHOLD = 5
