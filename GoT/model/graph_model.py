@@ -30,7 +30,7 @@ SCORE_THRESHOLD = 5
 starting_agent = OllamaLLM().create_custom_agent(
     OllamaLLM().get_tools(),
     SystemMessage(
-        "You are an assistant specialized in tools. " \
+        "You are an assistant specialized in tools. "
         " Your goal is not to resolve the problem, but only to make list with the best tool to use. "
         " If you are not sure of the tool you have, think also a generic tool to craft that could be useful to solve the problem. "
         "The list MUST be in this format and it is not possible to format the tool_name in any way: "
@@ -101,7 +101,7 @@ crafter_agent = OllamaLLM().create_custom_agent(
         """
     ),
     response_format=Response,
-) 
+)
 
 # Defining runtime graph
 runtime_graph = RuntimeGraph()
@@ -225,6 +225,7 @@ def response_evaluation(messages: MessagesState):
     runtime_graph.resolve_node(test_node, score_res.description)
     return messages
 
+
 def crafting(messages: MessagesState):
     crafting_node = CraftingNode(response="", tool_crafted="", resolved=False)
     runtime_graph.add_node(crafting_node)
@@ -232,16 +233,20 @@ def crafting(messages: MessagesState):
     runtime_graph.temp_node = crafting_node
     crafting_messages = [
         HumanMessage(content="Original task:\n" + parse_response(runtime_graph.goal)),
-        SystemMessage(content="Craft a tool to solve this problem using craft_tool. It must be a function"),
+        SystemMessage(
+            content="Craft a tool to solve this problem using craft_tool. It must be a function"
+        ),
     ]
     craft_res = crafter_agent.invoke({"messages": crafting_messages})
     print(OllamaLLM().get_crafted_tools())
-    runtime_graph.temp_response.response = parse_response_for_tool_node(craft_res).response
-    parsed_res = f"Response: {parse_response_for_tool_node(craft_res).response}\nExplanation: {parse_response_for_tool_node(craft_res).explanation}"    
+    runtime_graph.temp_response.response = parse_response_for_tool_node(
+        craft_res
+    ).response
+    parsed_res = f"Response: {parse_response_for_tool_node(craft_res).response}\nExplanation: {parse_response_for_tool_node(craft_res).explanation}"
     runtime_graph.resolve_node(crafting_node, parsed_res)
     runtime_graph.temp_node = runtime_graph.call_tool_node()
     runtime_graph.add_edge(crafting_node, runtime_graph.temp_node)
-    global starting_agent 
+    global starting_agent
     starting_agent = OllamaLLM().create_custom_agent(
         OllamaLLM().get_tools(),
         SystemMessage(
@@ -256,6 +261,7 @@ def crafting(messages: MessagesState):
     messages["messages"].append(AIMessage(parsed_res))
     return messages
 
+
 def test_result(messages: MessagesState):
     n = runtime_graph.exist_tool_available()
     test_node = runtime_graph.temp_node
@@ -266,7 +272,11 @@ def test_result(messages: MessagesState):
         runtime_graph.add_edge(test_node, runtime_graph.temp_response)
         runtime_graph.temp_response.resolved = True
         return END
-    elif test_node.score < SCORE_THRESHOLD and n is True and test_node.need_tool_crafting is True:
+    elif (
+        test_node.score < SCORE_THRESHOLD
+        and n is True
+        and test_node.need_tool_crafting is True
+    ):
         return "crafting"
     elif test_node.score < SCORE_THRESHOLD and n is True:
         return "backtrack"
@@ -343,7 +353,12 @@ def invoke_graph():
     graph.add_conditional_edges(
         "response_evaluation",
         test_result,
-        {"crafting": "crafting", "backtrack": "backtrack", "chat_completition": "chat_completition", END: END},
+        {
+            "crafting": "crafting",
+            "backtrack": "backtrack",
+            "chat_completition": "chat_completition",
+            END: END,
+        },
     )
 
     graph = graph.compile()

@@ -17,7 +17,7 @@ def python_tool(code: str) -> str:
         query = re.sub(r"^(\s|`)*(?i:python)?\s*", "", query)
         query = re.sub(r"(\s|`)*$", "", query)
         return query
-    
+
     try:
         # WARNING: Using eval/exec can be dangerous. This is just for demonstration purposes.
         namespace = {}
@@ -36,13 +36,14 @@ def install_dependency(package_name: str) -> str:
     except Exception as e:
         return str(e)
 
+
 @tool
 def craft_tool(tool_function: str) -> str:
     """Save the function definition provided by the LLM as a tool that can be used by other agents.
-      The function should be defined as a python function.
-      The function should be general and reusable, and should not be specific to the current problem.
-      The function should be defined in a way that it can be imported and used by other agents."""
-    
+    The function should be defined as a python function.
+    The function should be general and reusable, and should not be specific to the current problem.
+    The function should be defined in a way that it can be imported and used by other agents."""
+
     def sanitize_input(query: str) -> str:
         """Sanitize input to the python REPL.
         Remove whitespace, backtick & python

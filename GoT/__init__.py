@@ -1,14 +1,12 @@
 import json
 import logging
-import os
 from dotenv import load_dotenv
 
 from lm_eval import evaluator, tasks
 from GoT.model.graph_model import call_graph
 from GoT.model.lm_wrapper import (
-    LangGraphLMWrapper,
     OllamaTestLMWrapper,
-    LangGraphBigBenchWrapper
+    LangGraphBigBenchWrapper,
 )
 from GoT.model.utils.utils import print_benchmark_result
 
@@ -18,6 +16,7 @@ logger = logging.getLogger("GoT")
 load_dotenv()
 
 # Possible filter = "flexible", "none", "strict"
+
 
 def lm_eval_test_benchmark():
     task_name = "gsm8k"
@@ -40,15 +39,17 @@ def lm_eval_test_benchmark():
 
 
 def lm_eval_graph_benchmark():
-    task_name = "bigbench_logical_sequence_generate_until"
+    # hendrycks_math_geometry
+    task_name = "gsm8k"
     task_list = [task_name]
     lm = LangGraphBigBenchWrapper()
     task_dict = tasks.get_task_dict(task_list)
 
     results = evaluator.evaluate(
         lm=lm,
+        # limit=10,
         task_dict=task_dict,
-        limit=5,  # Limit the number of samples
+        samples={task_name: [5, 10, 20, 50, 100, 150, 127, 152]},
         log_samples=True,
     )
 
@@ -56,18 +57,17 @@ def lm_eval_graph_benchmark():
     with open("ollama_graph_benchmark_results.json", "w") as f:
         json.dump(results, f, indent=2)
 
-    print_benchmark_result(results, task_name, filter="none")
+    print_benchmark_result(results, task_name, filter="flexible")
 
 
 def custom_test():
-    call_graph(
-        "Josh decides to try flipping a house. He buys a house for $80,000 and then puts in $50,000 in repairs. This increased the value of the house by 150%. How much profit did he make?"
-    )
+    call_graph("∫x2⋅ex2dx")
 
 
 def main():
     # It could be changed with custom_test() to test a custom problem instead of the benchmark
-    custom_test()
+    lm_eval_graph_benchmark()
+
 
 # let this be the last line of this file
 logger.info("GoT loaded")
