@@ -20,7 +20,7 @@ def python_tool(code: str) -> str:
 
     try:
         # WARNING: Using eval/exec can be dangerous. This is just for demonstration purposes.
-        namespace = {}
+        namespace: dict[str, object] = {}
         exec(sanitize_input(code), namespace, namespace)
         return str(namespace.get("result", "No result variable defined."))
     except Exception as e:
