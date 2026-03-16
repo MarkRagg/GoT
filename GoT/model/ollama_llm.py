@@ -62,10 +62,10 @@ class OllamaLLM:
         initial_tools = [summing, minus, square_root, multiply, divide]
         crafted_tools = self.get_crafted_tools()
         return initial_tools + crafted_tools
-    
+
     def get_craft_tool(self):
         return [craft_tool, install_dependency]
-    
+
     def get_crafted_tools(self) -> list[BaseTool]:
         module_name = "GoT.tools.ai_tool"
         if module_name in sys.modules:

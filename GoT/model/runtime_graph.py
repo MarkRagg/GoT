@@ -110,6 +110,7 @@ class ResponseNode(RuntimeNode):
         super().__init__(resolved)
         self.response = response
 
+
 class CraftingNode(RuntimeNode):
     def __init__(
         self,
@@ -201,7 +202,7 @@ class RuntimeGraph:
             n for n in nodes if (isinstance(n, CraftingNode) and n.resolved)
         ]
         return True if crafting_nodes else False
-    
+
     def append_prompt_to_messages_state(
         self, node: TestNode | ToolNode | CompletitionNode | GoalNode
     ) -> MessagesState:
