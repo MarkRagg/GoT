@@ -30,8 +30,9 @@ SCORE_THRESHOLD = 5
 starting_agent = OllamaLLM().create_custom_agent(
     OllamaLLM().get_tools(),
     SystemMessage(
-        "You are an assistant specialized in tools. Your goal is not to resolve the problem,"
-        " only to make list with the best tool to use. "
+        "You are an assistant specialized in tools. " \
+        " Your goal is not to resolve the problem, but only to make list with the best tool to use. "
+        " If you are not sure of the tool you have, think also a generic tool to craft that could be useful to solve the problem. "
         "The list MUST be in this format and it is not possible to format the tool_name in any way: "
         "- tool_name "
         "- tool_name "
@@ -44,19 +45,32 @@ chat_completition_agent = OllamaLLM().create_custom_agent([])
 judge_agent = OllamaLLM().create_custom_agent(
     [],
     SystemMessage(
-        "You are an assistant specialized in validation of response, like an LLM-as-a-judge. "
-        "Your duty is to score, from 0 to 6, the response that user gives to you and assign to it a score. You can not give the response, but can give a hint for the solution. "
-        "You MUST respond ONLY using the Score function. "
-        "Do not write natural language outside the function. "
-        "If you fail to respect the format, the evaluation will fail."
-        "\n0: The response is impossible to understand and completely wrong. "
-        "\n1: The response is near to be completely wrong. "
-        "\n2: The response is in the correct language but it doesn't follow the instruction. "
-        "\n3: The response try to resolve the problem but doesn't follow the instruction or the response is wrong. "
-        "\n4: The response follow the instruction but the result is wrong or the result is correct but doesn't follow the instruction. "
-        "\n5: The response follow the instruction and the result is near to the solution (If the task is hard, the solution should be near to the corrected one). "
-        "\n6: The response follow the instruction and the result is perfectly correct."
-        "Sometimes a new tool could help to solve the problem, try this option sometimes."
+        """
+        You are an assistant specialized in validating responses, like an LLM-as-a-judge.
+        Your duty is to score, from 0 to 6, the response that user gives and assign a score.
+
+        Rules:
+        - You MUST respond ONLY using the Score function.
+        - You cannot give the full solution, only hints.
+        - If the response cannot solve the task as-is, you SHOULD suggest a new tool to help.
+        - Do not write natural language outside the function.
+        - Always consider creating a tool if it makes the response correct or reusable.
+
+        Score meanings:
+        0: Impossible to understand / completely wrong
+        1: Nearly completely wrong
+        2: Correct language but does not follow instruction
+        3: Tries to solve but fails instruction / wrong
+        4: Follows instruction but result wrong or incomplete
+        5: Follows instruction, result nearly correct
+        6: Follows instruction, result correct
+
+        Example:
+        - User response: cannot compute because missing helper
+        - Hint: implement a tool that computes the missing function
+
+        Always prioritize suggesting a reusable tool if it helps solve the problem.
+        """
     ),
     response_format=Score,
 )
@@ -64,10 +78,27 @@ judge_agent = OllamaLLM().create_custom_agent(
 crafter_agent = OllamaLLM().create_custom_agent(
     OllamaLLM().get_craft_tool(),
     SystemMessage(
-        "You are an assistant specialized in crafting tools. Your goal is to craft a tool that help to other agents to solve the problem."
-        "You MUST respond ONLY using the tool that you have at your disposal. "
-        "No comment in the python interpreter will be allowed. "
-        "Do not write natural language outside the tool. "
+        """
+        You create reusable Python tools for other agents.
+
+        The tool must be GENERAL and parameterized.
+        Never hardcode values from the current problem.
+
+        Bad example (too specific):
+        def multiply_3_and_7():
+            return 3 * 7
+
+        Good example (general):
+        def multiply(a: float, b: float) -> float:
+            return a * b
+
+        Rules:
+        - Prefer generic names and parameters.
+        - If the function contains specific numbers or values, it is wrong.
+        - Respond ONLY using the tool available.
+        - No natural language.
+        - No comments in the python interpreter.
+        """
     ),
     response_format=Response,
 ) 
@@ -96,12 +127,12 @@ def tool_expand(goal: MessagesState):
     goal["messages"].append(AIMessage(content=str_res))
     tool_list = parse_tool_list(str_res)  # Toglie elementi inutili
     # add tool nodes in the runtime graph
-    for tool in tool_list:
+    for i in range(0, 3):
         tool_node = RuntimeNode(resolved=True)
         call_node = ToolNode(
             "Please, resolve the problem with the tools given, you MUST follow the previous reasoning.",
             "",
-            tool_name=tool,
+            tool_name="",
         )
         reasoning_node = ReasoningNode("")
         runtime_graph.add_node(tool_node)
@@ -112,7 +143,7 @@ def tool_expand(goal: MessagesState):
         runtime_graph.add_node(call_node)
         runtime_graph.add_edge(tool_node, reasoning_node)
         runtime_graph.add_edge(reasoning_node, call_node)
-        runtime_graph.add_tool_link(call_node, tool)
+        # runtime_graph.add_tool_link(call_node, tool)
     # extract a reasoning node to resolve
     runtime_graph.temp_node = runtime_graph.call_tool_node()
     return goal
@@ -148,7 +179,6 @@ def tool_call(messages: MessagesState):
         ),
         response_format=Response,
     )
-    print(OllamaLLM().get_tools())
     res = tool_agent.invoke({"messages": messages["messages"], "tool_choice": Response})
     tool_used = extract_tool_used(res)
     runtime_graph.temp_response.response = parse_response_for_tool_node(res).response
@@ -205,6 +235,7 @@ def crafting(messages: MessagesState):
         SystemMessage(content="Craft a tool to solve this problem using craft_tool. It must be a function"),
     ]
     craft_res = crafter_agent.invoke({"messages": crafting_messages})
+    print(OllamaLLM().get_crafted_tools())
     runtime_graph.temp_response.response = parse_response_for_tool_node(craft_res).response
     parsed_res = f"Response: {parse_response_for_tool_node(craft_res).response}\nExplanation: {parse_response_for_tool_node(craft_res).explanation}"    
     runtime_graph.resolve_node(crafting_node, parsed_res)

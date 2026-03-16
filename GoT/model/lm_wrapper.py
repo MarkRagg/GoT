@@ -181,7 +181,7 @@ class LangGraphBigBenchWrapper(LM):
                 return prompt
 
             # Fallback per altri campi
-            for field in ["input", "question", "text", "prompt", "instruction"]:
+            for field in ["input", "question", "problem", "text", "prompt", "instruction"]:
                 if field in doc and doc[field]:
                     return str(doc[field])
 
