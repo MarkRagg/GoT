@@ -1,6 +1,8 @@
+import inspect
 import os
 import importlib
-from langchain.tools import BaseTool
+import sys
+from langchain.tools import BaseTool, tool
 from langchain_google_genai import ChatGoogleGenerativeAI
 
 from dotenv import load_dotenv
@@ -65,12 +67,16 @@ class OllamaLLM:
         return [craft_tool, install_dependency]
     
     def get_crafted_tools(self) -> list[BaseTool]:
-        module = importlib.import_module("GoT.tools.ai_tool")
+        module_name = "GoT.tools.ai_tool"
+        if module_name in sys.modules:
+            module = importlib.reload(sys.modules[module_name])
+        else:
+            module = importlib.import_module(module_name)
         tools = []
-        for obj in module.__dict__.values():
-            if isinstance(obj, BaseTool):
-                tools.append(obj)
-                
+        for name, obj in module.__dict__.items():
+            if inspect.isfunction(obj) and obj.__module__ == module.__name__:
+                tools.append(tool(obj))  # wrap runtime
+
         return tools
 
     def create_custom_agent(

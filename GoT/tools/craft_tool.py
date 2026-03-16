@@ -55,7 +55,7 @@ def craft_tool(tool_function: str) -> str:
     try:
         base_dir = Path(__file__).parent
         file_path = base_dir / "ai_tool.py"
-        code = f"""\n\n@tool\n{sanitize_input(tool_function)}"""
+        code = f"""\n\n{sanitize_input(tool_function)}"""
         with open(file_path, "a") as f:
             f.write(code)
         return "Tool crafted successfully."
