@@ -55,7 +55,7 @@ def parse_score(response: MessagesState) -> Score:
     if isinstance(score, Score):
         return score
     else:
-        return Score(score=0, description="Failed to parse score")
+        return Score(score=0, description="Failed to parse score", need_tool_crafting=False)
 
 
 def parse_response_for_tool_node(response: MessagesState) -> Response:
