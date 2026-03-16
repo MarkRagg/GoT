@@ -12,7 +12,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 # update the Python versions in .github/workflows/check.yml if you change this
 python = ">= 3.10.0 < 3.14.0"
-langchain = "^1.2.4"
+langchain = {extras = ["google-genai", "openai"], version = "^1.2.11"}
 langchain-openai = "^1.1.7"
 langgraph = "^1.0.6"
 dotenv = "^0.9.9"
