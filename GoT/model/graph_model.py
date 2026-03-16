@@ -125,7 +125,7 @@ def tool_expand(goal: MessagesState):
     res = starting_agent.invoke({"messages": messages})
     str_res = parse_response(res)
     goal["messages"].append(AIMessage(content=str_res))
-    tool_list = parse_tool_list(str_res)  # Toglie elementi inutili
+    # tool_list = parse_tool_list(str_res)  # Toglie elementi inutili
     # add tool nodes in the runtime graph
     for i in range(0, 3):
         tool_node = RuntimeNode(resolved=True)
