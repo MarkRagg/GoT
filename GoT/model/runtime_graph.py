@@ -35,12 +35,14 @@ class TestNode(RuntimeNode):
         score: int,
         tool_used: List[str] = [],
         resolved: bool = False,
+        need_tool_crafting: bool = False,
     ):
         super().__init__(resolved)
         self.prompt = prompt
         self.response = response
         self.score = score
         self.tool_used = tool_used
+        self.need_tool_crafting = need_tool_crafting
 
 
 class ToolNode(RuntimeNode):
@@ -126,6 +128,7 @@ class Score(BaseModel):
     Attributes:
         score: int - The score assigned to the test node.
         description: str - A description or rationale for the assigned score.
+        need_tool_crafting: bool - Indicates whether the test node requires crafting a new tool to be resolved.
     """
 
     score: int = Field(..., description="Integer score between 0 and 6 inclusive.")
@@ -133,6 +136,11 @@ class Score(BaseModel):
     description: str = Field(
         ...,
         description="Short justification (1-3 sentences) explaining why the score was assigned.",
+    )
+
+    need_tool_crafting: bool = Field(
+        ...,
+        description="Indicates whether the problem requires or it is useful to craft a new tool to be resolved.",
     )
 
 

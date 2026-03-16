@@ -56,6 +56,7 @@ judge_agent = OllamaLLM().create_custom_agent(
         "\n4: The response follow the instruction but the result is wrong or the result is correct but doesn't follow the instruction. "
         "\n5: The response follow the instruction and the result is near to the solution (If the task is hard, the solution should be near to the corrected one). "
         "\n6: The response follow the instruction and the result is perfectly correct."
+        "Sometimes a new tool could help to solve the problem, try this option sometimes."
     ),
     response_format=Score,
 )
@@ -147,7 +148,7 @@ def tool_call(messages: MessagesState):
         ),
         response_format=Response,
     )
-
+    print(OllamaLLM().get_tools())
     res = tool_agent.invoke({"messages": messages["messages"], "tool_choice": Response})
     tool_used = extract_tool_used(res)
     runtime_graph.temp_response.response = parse_response_for_tool_node(res).response
@@ -179,7 +180,7 @@ def response_evaluation(messages: MessagesState):
         HumanMessage(content="Original task:\n" + parse_response(runtime_graph.goal)),
         HumanMessage(content=call_node_response),
         SystemMessage(
-            content="Score this solution based on correctness and following instructions."
+            content="Score this solution based on correctness and following instructions. A new tool could help to solve the problem?"
         ),
         AIMessage(
             content="Tool used in the response: " + ", ".join(test_node.tool_used)
@@ -190,6 +191,7 @@ def response_evaluation(messages: MessagesState):
         judge_agent.invoke({"messages": judge_messages, "tool_choice": Score})
     )
     test_node.score = score_res.score
+    test_node.need_tool_crafting = score_res.need_tool_crafting
     runtime_graph.resolve_node(test_node, score_res.description)
     return messages
 
@@ -206,15 +208,20 @@ def crafting(messages: MessagesState):
     runtime_graph.temp_response.response = parse_response_for_tool_node(craft_res).response
     parsed_res = f"Response: {parse_response_for_tool_node(craft_res).response}\nExplanation: {parse_response_for_tool_node(craft_res).explanation}"    
     runtime_graph.resolve_node(crafting_node, parsed_res)
-    test_node = TestNode(
-        f"{parsed_res}",
-        "",
-        score=0,
-        tool_used="",
+    runtime_graph.temp_node = runtime_graph.call_tool_node()
+    runtime_graph.add_edge(crafting_node, runtime_graph.temp_node)
+    global starting_agent 
+    starting_agent = OllamaLLM().create_custom_agent(
+        OllamaLLM().get_tools(),
+        SystemMessage(
+            "You are an assistant specialized in tools. Your goal is not to resolve the problem,"
+            " only to make list with the best tool to use. "
+            "The list MUST be in this format and it is not possible to format the tool_name in any way: "
+            "- tool_name "
+            "- tool_name "
+            "- tool_name "
+        ),
     )
-    runtime_graph.add_node(test_node)
-    runtime_graph.add_edge(crafting_node, test_node)
-    runtime_graph.temp_node = test_node
     messages["messages"].append(AIMessage(parsed_res))
     return messages
 
@@ -228,10 +235,10 @@ def test_result(messages: MessagesState):
         runtime_graph.add_edge(test_node, runtime_graph.temp_response)
         runtime_graph.temp_response.resolved = True
         return END
+    elif test_node.score < SCORE_THRESHOLD and n is True and test_node.need_tool_crafting is True:
+        return "crafting"
     elif test_node.score < SCORE_THRESHOLD and n is True:
         return "backtrack"
-    elif test_node.score < SCORE_THRESHOLD and n is False and not runtime_graph.is_craftin_node_resolved():
-        return "crafting"
     else:
         chat_completition_node = CompletitionNode(
             "Please, solve this problem",
@@ -300,7 +307,7 @@ def invoke_graph():
     graph.add_edge("tool_reasoning", "tool_call")
     graph.add_edge("tool_call", "response_evaluation")
     graph.add_edge("backtrack", "tool_reasoning")
-    graph.add_edge("crafting", "response_evaluation")
+    graph.add_edge("crafting", "tool_reasoning")
     graph.add_edge("chat_completition", END)
     graph.add_conditional_edges(
         "response_evaluation",
