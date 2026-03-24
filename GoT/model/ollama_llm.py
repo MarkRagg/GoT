@@ -11,6 +11,7 @@ from langchain_core.messages import SystemMessage
 from langchain.agents import create_agent
 import mlflow
 
+from GoT.model.runtime_graph import Response, Score
 from GoT.tools.math_tool import (
     multiply,
     summing,
@@ -25,6 +26,7 @@ load_dotenv()
 
 mlflow.set_experiment("marcoraggini-experiment")
 mlflow.openai.autolog()
+mlflow.gemini.autolog()
 mlflow.langchain.autolog()
 
 SYSTEM_PROMPT_GENERAL = """
@@ -33,7 +35,7 @@ SYSTEM_PROMPT_GENERAL = """
             """
 
 
-class OllamaLLM:
+class LLM:
     def __init__(self):
         with mlflow.set_active_model(name="ollama-agent-ministral-3"):
             self.ollamaLLM = ChatOpenAI(
@@ -50,11 +52,30 @@ class OllamaLLM:
             #     model="openai/gpt-oss-120b:free",
             #     temperature=0.5,
             # )
-            self.remoteLLM = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
+            self.remoteLLMStandard = ChatGoogleGenerativeAI(
+                model="gemini-3-flash-preview",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 temperature=1.0,  # Gemini 3.0+ defaults to 1.0
             )
+            self.remoteLLMResponseFormat = ChatGoogleGenerativeAI(
+                model="gemini-3-flash-preview",
+                api_key=os.environ.get("GEMINI_API_KEY"),
+                temperature=1.0,  # Gemini 3.0+ defaults to 1.0
+                response_schema=Response.model_json_schema()
+            )
+            self.remoteLLMScoreFormat = ChatGoogleGenerativeAI(
+                model="gemini-3-flash-preview",
+                api_key=os.environ.get("GEMINI_API_KEY"),
+                temperature=1.0,  # Gemini 3.0+ defaults to 1.0
+                response_schema=Score.model_json_schema()
+            )
+
+            self.remoteLLMs = {
+                "remote_standard": self.remoteLLMStandard,
+                "remote_response_format": self.remoteLLMResponseFormat,
+                "remote_score_format": self.remoteLLMScoreFormat
+            }
+
 
             self.system_prompt = SystemMessage(SYSTEM_PROMPT_GENERAL)
 
@@ -84,9 +105,10 @@ class OllamaLLM:
         tools,
         system_prompt: SystemMessage = SystemMessage(SYSTEM_PROMPT_GENERAL),
         response_format=None,
+        type: str = "remote_standard"
     ):
         return create_agent(
-            model=self.ollamaLLM,
+            model=self.remoteLLMs[type],
             tools=tools,
             system_prompt=system_prompt,
             response_format=response_format,

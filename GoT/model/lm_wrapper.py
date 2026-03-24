@@ -3,7 +3,7 @@ from GoT.model.graph_model import call_graph
 from lm_eval.api.registry import register_model
 from lm_eval.api.model import LM
 
-from GoT.model.ollama_llm import OllamaLLM
+from GoT.model.ollama_llm import LLM
 from langchain_core.messages import HumanMessage
 from GoT.model.utils.utils import extract_output, normalize_number, parse_response
 
@@ -30,7 +30,7 @@ class OllamaTestLM:
         pass
 
     def generate(self, requests, max_new_tokens=None):
-        agent = OllamaLLM().create_custom_agent(tools=OllamaLLM().get_tools())
+        agent = LLM().create_custom_agent(tools=LLM().get_tools())
         outputs = []
         for r in requests:
             prompt = r["prompt"]
@@ -111,7 +111,7 @@ class OllamaTestLMWrapper(LM):
         """
         Generate text until a stopping condition is met.
         """
-        agent = OllamaLLM().create_custom_agent(tools=OllamaLLM().get_tools())
+        agent = LLM().create_custom_agent(tools=LLM().get_tools())
         outputs = []
         for i, request in enumerate(requests):
             try:
@@ -259,18 +259,18 @@ class LangGraphBigBenchWrapper(LM):
         for i, request in enumerate(requests):
             try:
                 # Estrai context e continuation
-                if isinstance(request, tuple) and len(request) == 2:
+                if hasattr(request, "arguments") and request.arguments:
+                    context, continuation = request.arguments
+
+                elif isinstance(request, tuple) and len(request) == 2:
                     context, continuation = request
+
                 else:
-                    # Fallback
                     context = ""
                     continuation = str(request)
 
-                # Prepara il prompt per il modello
-                full_text = context + continuation
-
                 # Chiama il grafo
-                result = call_graph(full_text)
+                result = call_graph(context)
                 generated_output = normalize_number(extract_output(result))
 
                 # Calcola il score di likelihood

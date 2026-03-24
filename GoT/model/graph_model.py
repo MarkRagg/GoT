@@ -2,7 +2,7 @@ from venv import logger
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, MessagesState, START, END
 
-from GoT.model.ollama_llm import OllamaLLM
+from GoT.model.ollama_llm import LLM
 from GoT.model.runtime_graph import (
     BacktrackNode,
     CompletitionNode,
@@ -26,8 +26,8 @@ from GoT.model.utils.utils import (
 SCORE_THRESHOLD = 5
 
 # Defining agents
-starting_agent = OllamaLLM().create_custom_agent(
-    OllamaLLM().get_tools(),
+starting_agent = LLM().create_custom_agent(
+    LLM().get_tools(),
     SystemMessage(
         "You are an assistant specialized in tools. "
         " Your goal is not to resolve the problem, but only to make list with the best tool to use. "
@@ -37,11 +37,12 @@ starting_agent = OllamaLLM().create_custom_agent(
         "- tool_name "
         "- tool_name "
     ),
+    type="remote_standard"
 )
 
-chat_completition_agent = OllamaLLM().create_custom_agent([])
+chat_completition_agent = LLM().create_custom_agent([])
 
-judge_agent = OllamaLLM().create_custom_agent(
+judge_agent = LLM().create_custom_agent(
     [],
     SystemMessage(
         """
@@ -72,10 +73,11 @@ judge_agent = OllamaLLM().create_custom_agent(
         """
     ),
     response_format=Score,
+    type="remote_score_format"
 )
 
-crafter_agent = OllamaLLM().create_custom_agent(
-    OllamaLLM().get_craft_tool(),
+crafter_agent = LLM().create_custom_agent(
+    LLM().get_craft_tool(),
     SystemMessage(
         """
         You create reusable Python tools for other agents.
@@ -100,6 +102,7 @@ crafter_agent = OllamaLLM().create_custom_agent(
         """
     ),
     response_format=Response,
+    type="remote_response_format"
 )
 
 # Defining runtime graph
@@ -167,8 +170,8 @@ def tool_reasoning(messages: MessagesState):
 def tool_call(messages: MessagesState):
     # It calls the llm and it resolves the call node
     call_node = runtime_graph.temp_node
-    tool_agent = OllamaLLM().create_custom_agent(
-        OllamaLLM().get_tools(),
+    tool_agent = LLM().create_custom_agent(
+        LLM().get_tools(),
         SystemMessage(
             "You are an assistant specialized in tools. Your goal is to resolve the problem with "
             " the tool that the user indicates to you. You MUST use the tool that user indicates to you."
@@ -177,6 +180,7 @@ def tool_call(messages: MessagesState):
             "If you fail to respect the format, the evaluation will fail."
         ),
         response_format=Response,
+        type="remote_response_format"
     )
     res = tool_agent.invoke({"messages": messages["messages"], "tool_choice": Response})
     tool_used = extract_tool_used(res)
@@ -237,7 +241,7 @@ def crafting(messages: MessagesState):
         ),
     ]
     craft_res = crafter_agent.invoke({"messages": crafting_messages})
-    print(OllamaLLM().get_crafted_tools())
+    print(LLM().get_crafted_tools())
     runtime_graph.temp_response.response = parse_response_for_tool_node(
         craft_res
     ).response
@@ -246,16 +250,17 @@ def crafting(messages: MessagesState):
     runtime_graph.temp_node = runtime_graph.call_tool_node()
     runtime_graph.add_edge(crafting_node, runtime_graph.temp_node)
     global starting_agent
-    starting_agent = OllamaLLM().create_custom_agent(
-        OllamaLLM().get_tools(),
+    starting_agent = LLM().create_custom_agent(
+        LLM().get_tools(),
         SystemMessage(
             "You are an assistant specialized in tools. Your goal is not to resolve the problem,"
             " only to make list with the best tool to use. "
             "The list MUST be in this format and it is not possible to format the tool_name in any way: "
-            "- tool_name "
+            "- tool_name "\
             "- tool_name "
             "- tool_name "
         ),
+        type="remote_standard"
     )
     messages["messages"].append(AIMessage(parsed_res))
     return messages
