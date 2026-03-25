@@ -245,45 +245,35 @@ class LangGraphBigBenchWrapper(LM):
         return outputs
 
     def loglikelihood(self, requests):
-        """
-        Calcola la log-likelihood per BigBench multiple choice tasks.
-
-        Riceve una lista di tuple: (context, continuation)
-        Restituisce lista di tuple: (log_likelihood_score, is_greedy)
-
-        NOTA: Poiché invoke_graph non fornisce logits, usiamo un'euristica.
-        Se hai bisogno di precision massima, modifica invoke_graph per restituire logits.
-        """
         outputs = []
+        cache = {}  # context -> score già calcolato
 
         for i, request in enumerate(requests):
             try:
-                # Estrai context e continuation
                 if hasattr(request, "arguments") and request.arguments:
                     context, continuation = request.arguments
-
                 elif isinstance(request, tuple) and len(request) == 2:
                     context, continuation = request
-
                 else:
                     context = ""
                     continuation = str(request)
 
-                # Chiama il grafo
-                result = call_graph(context)
-                generated_output = normalize_number(extract_output(result))
-
-                # Calcola il score di likelihood
-                score = self._calculate_likelihood_score(
-                    generated_output, continuation, context
-                )
+                # Se già calcolato, riutilizza lo score
+                if context in cache:
+                    score = cache[context]
+                else:
+                    result = call_graph(context)
+                    generated_output = normalize_number(extract_output(result))
+                    score = self._calculate_likelihood_score(
+                        generated_output, continuation, context
+                    )
+                    cache[context] = score
 
                 outputs.append((score, False))
 
             except Exception as e:
                 print(f"Error in BigBench loglikelihood request {i}: {e}")
                 import traceback
-
                 traceback.print_exc()
                 outputs.append((float("-inf"), False))
 
@@ -336,3 +326,114 @@ class LangGraphBigBenchWrapper(LM):
         else:
             # Nessuna sovrapposizione
             return float("-inf")
+
+
+@register_model("test_bigbench")
+class TestBigBenchWrapper(LM):
+    def __init__(self, model_args=""):
+        super().__init__()
+        self.agent = LLM().create_custom_agent(LLM().get_tools()) 
+
+    def _extract_text_from_request(self, request):
+        """
+        Estrae il testo dalla request BigBench.
+        BigBench passa il prompt completo in doc['inputs'].
+        """
+        # Prova con request.doc - BigBench usa il campo 'inputs'
+        if hasattr(request, "doc") and isinstance(request.doc, dict):
+            doc = request.doc
+
+            # BigBench mette il prompt completo in 'inputs'
+            if "inputs" in doc and doc["inputs"]:
+                prompt = str(doc["inputs"]).strip()
+                return prompt
+
+            # Fallback per altri campi
+            for field in [
+                "input",
+                "question",
+                "problem",
+                "text",
+                "prompt",
+                "instruction",
+            ]:
+                if field in doc and doc[field]:
+                    return str(doc[field])
+
+        # Fallback: prova con request.arguments
+        if hasattr(request, "arguments") and request.arguments:
+            try:
+                full_prompt = request.arguments[0][0]
+                if full_prompt and len(str(full_prompt).strip()) > 1:
+                    return full_prompt
+            except (IndexError, TypeError):
+                pass
+
+        return str(request)
+
+    def generate_until(self, requests, until=None, **kwargs):
+        outputs = []
+
+        if not until:
+            until = ["\n\n", "\n"]
+        elif isinstance(until, str):
+            until = [until]
+
+        for request in requests:
+            try:
+                prompt = self._extract_text_from_request(request)
+
+                response = self.agent.invoke({"messages": [HumanMessage(content=prompt)]})
+                response = extract_output(response)
+
+                if not isinstance(response, str):
+                    response = str(response)
+
+                for stop_seq in until:
+                    if stop_seq in response:
+                        response = response.split(stop_seq)[0]
+
+                outputs.append(response.strip())
+
+            except Exception as e:
+                print(f"Agent error: {e}")
+                outputs.append("")
+
+        return outputs
+
+    def loglikelihood(self, requests):
+        """
+        Per agent è meglio NON usare loglikelihood classico.
+        Usiamo matching diretto.
+        """
+        outputs = []
+
+        for request in requests:
+            try:
+                if hasattr(request, "arguments") and request.arguments:
+                    context, continuation = request.arguments
+                else:
+                    context, continuation = request
+
+                response = self.agent.invoke({"messages": [HumanMessage(content=context)]})
+                response = str(response).strip().lower()
+                target = str(continuation).strip().lower()
+
+                # scoring semplice
+                if response == target:
+                    score = 0.0
+                elif target in response:
+                    score = -0.5
+                else:
+                    score = -5.0
+
+                outputs.append((score, False))
+
+            except Exception as e:
+                print(f"loglikelihood error: {e}")
+                outputs.append((float("-inf"), False))
+
+        return outputs
+
+    def loglikelihood_rolling(self, requests):
+        return self.loglikelihood(requests)

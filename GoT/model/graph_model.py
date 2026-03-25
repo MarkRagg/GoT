@@ -31,7 +31,8 @@ starting_agent = LLM().create_custom_agent(
     SystemMessage(
         "You are an assistant specialized in tools. "
         " Your goal is not to resolve the problem, but only to make list with the best tool to use. "
-        " If you are not sure of the tool you have, think also a generic tool to craft that could be useful to solve the problem. "
+        " If you are not sure of the tool you have, think also a generic tool to craft that could be useful to solve the problem (Specify the craft is needed). "
+        " If the problem require too much steps with the current tools, consider crafting a new tool."
         "The list MUST be in this format and it is not possible to format the tool_name in any way: "
         "- tool_name "
         "- tool_name "
@@ -52,7 +53,7 @@ judge_agent = LLM().create_custom_agent(
         Rules:
         - You MUST respond ONLY using the Score function.
         - You cannot give the full solution, only hints.
-        - If the response cannot solve the task as-is, you SHOULD suggest a new tool to help.
+        - If a response suggest the need of crafting a tool, score it with 4 or less and specify clearly the need of a new tool to solve the problem.
         - Do not write natural language outside the function.
         - Always consider creating a tool if it makes the response correct or reusable.
 
@@ -91,11 +92,19 @@ crafter_agent = LLM().create_custom_agent(
 
         Good example (general):
         def multiply(a: float, b: float) -> float:
+        '
+            Arguments:
+            a: the first number to multiply
+            b: the second number to multiply
+            Returns:
+            The product of a and b
+        '
             return a * b
 
         Rules:
-        - Prefer generic names and parameters.
+        - Prefer generic names and parameters, never craft specific functions.
         - If the function contains specific numbers or values, it is wrong.
+        - Craft only one function, it must contains always the docs.
         - Respond ONLY using the tool available.
         - No natural language.
         - No comments in the python interpreter.
@@ -154,7 +163,7 @@ def tool_expand(goal: MessagesState):
 def tool_reasoning(messages: MessagesState):
     messages["messages"].append(
         HumanMessage(
-            "Please, reason about how to use these tools to solve the problem, without solving it."
+            "Please, reason about how to use these tools to solve the problem, without solving it. If the main solution require to craft a tool, only explain how to craft the tool"
         )
     )
     result = parse_response(starting_agent.invoke(messages))
@@ -174,8 +183,8 @@ def tool_call(messages: MessagesState):
         LLM().get_tools(),
         SystemMessage(
             "You are an assistant specialized in tools. Your goal is to resolve the problem with "
-            " the tool that the user indicates to you. You MUST use the tool that user indicates to you."
-            "You MUST respond ONLY using the Response function. "
+            " the tool that the user indicates to you. You HAVE to use the tool that the assistant indicates to you."
+            " If the previous assistant suggest to you that craft a tool is needed, specify it clearly and do not solve the problem."
             "Do not write natural language outside the function. "
             "If you fail to respect the format, the evaluation will fail."
         ),
