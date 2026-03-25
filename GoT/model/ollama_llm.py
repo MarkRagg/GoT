@@ -46,22 +46,16 @@ class LLM:
                 reasoning_effort="none",
             )
 
-            # self.remoteLLM = ChatOpenAI(
-            #     base_url="https://openrouter.ai/api/v1",
-            #     api_key=os.environ.get("OPEN_ROUTER_KEY"),
-            #     model="openai/gpt-oss-120b:free",
-            #     temperature=0.5,
-            # )
+            # GEMINI LLMs
             self.remoteLLMStandard = ChatGoogleGenerativeAI(
                 model="gemini-3-flash-preview",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 temperature=1.0,  # Gemini 3.0+ defaults to 1.0
             )
             self.remoteLLMResponseFormat = ChatGoogleGenerativeAI(
-                model="gemini-3-flash-preview",
+                model="gemini-2.5-flash",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 temperature=1.0,  # Gemini 3.0+ defaults to 1.0
-                response_schema=Response.model_json_schema()
             )
             self.remoteLLMScoreFormat = ChatGoogleGenerativeAI(
                 model="gemini-3-flash-preview",
