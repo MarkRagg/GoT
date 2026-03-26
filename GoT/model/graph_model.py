@@ -38,7 +38,7 @@ starting_agent = LLM().create_custom_agent(
         "- tool_name "
         "- tool_name "
     ),
-    type="remote_standard"
+    type="remote_standard",
 )
 
 chat_completition_agent = LLM().create_custom_agent([])
@@ -74,7 +74,7 @@ judge_agent = LLM().create_custom_agent(
         """
     ),
     response_format=Score,
-    type="remote_score_format"
+    type="remote_score_format",
 )
 
 crafter_agent = LLM().create_custom_agent(
@@ -112,7 +112,7 @@ crafter_agent = LLM().create_custom_agent(
         """
     ),
     response_format=Response,
-    type="remote_response_format"
+    type="remote_response_format",
 )
 
 # Defining runtime graph
@@ -190,7 +190,7 @@ def tool_call(messages: MessagesState):
             "If you fail to respect the format, the evaluation will fail."
         ),
         response_format=Response,
-        type="remote_response_format"
+        type="remote_response_format",
     )
     res = tool_agent.invoke({"messages": messages["messages"], "tool_choice": Response})
     tool_used = extract_tool_used(res)
@@ -266,11 +266,11 @@ def crafting(messages: MessagesState):
             "You are an assistant specialized in tools. Your goal is not to resolve the problem,"
             " only to make list with the best tool to use. "
             "The list MUST be in this format and it is not possible to format the tool_name in any way: "
-            "- tool_name "\
+            "- tool_name "
             "- tool_name "
             "- tool_name "
         ),
-        type="remote_standard"
+        type="remote_standard",
     )
     messages["messages"].append(AIMessage(parsed_res))
     return messages

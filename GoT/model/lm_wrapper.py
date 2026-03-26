@@ -276,6 +276,7 @@ class LangGraphBigBenchWrapper(LM):
             except Exception as e:
                 print(f"Error in BigBench loglikelihood request {i}: {e}")
                 import traceback
+
                 traceback.print_exc()
                 outputs.append((float("-inf"), False))
 
@@ -302,20 +303,22 @@ class LangGraphBigBenchWrapper(LM):
         Questo è un workaround poiché non abbiamo i veri logits.
         """
         gen_text = str(generated_text).strip().lower()
-        target = str(target_continuation).strip().lower().replace("(", "").replace(")", "")
-    
+        target = (
+            str(target_continuation).strip().lower().replace("(", "").replace(")", "")
+        )
+
         # Se il target è contenuto nella risposta (es: "a" è in "la risposta è a")
         if target in gen_text:
-            return 5.0 # Match trovato
-        
-        return -1.0 # Invece di -inf, usa un valore molto basso ma numerico
+            return 5.0  # Match trovato
+
+        return -1.0  # Invece di -inf, usa un valore molto basso ma numerico
 
 
 @register_model("test_bigbench")
 class TestBigBenchWrapper(LM):
     def __init__(self, model_args=""):
         super().__init__()
-        self.agent = LLM().create_custom_agent(LLM().get_tools()) 
+        self.agent = LLM().create_custom_agent(LLM().get_tools())
 
     def _extract_text_from_request(self, request):
         """
@@ -366,7 +369,9 @@ class TestBigBenchWrapper(LM):
             try:
                 prompt = self._extract_text_from_request(request)
 
-                response = self.agent.invoke({"messages": [HumanMessage(content=prompt)]})
+                response = self.agent.invoke(
+                    {"messages": [HumanMessage(content=prompt)]}
+                )
                 response = extract_output(response)
 
                 if not isinstance(response, str):
@@ -398,7 +403,9 @@ class TestBigBenchWrapper(LM):
                 else:
                     context, continuation = request
 
-                response = self.agent.invoke({"messages": [HumanMessage(content=context)]})
+                response = self.agent.invoke(
+                    {"messages": [HumanMessage(content=context)]}
+                )
                 response = str(response).strip().lower()
                 target = str(continuation).strip().lower()
 
