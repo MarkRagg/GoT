@@ -1,4 +1,3 @@
-import math
 from GoT.model.graph_model import call_graph
 from lm_eval.api.registry import register_model
 from lm_eval.api.model import LM

@@ -11,7 +11,6 @@ from langchain_core.messages import SystemMessage
 from langchain.agents import create_agent
 import mlflow
 
-from GoT.model.runtime_graph import Response, Score
 from GoT.tools.math_tool import (
     multiply,
     summing,
@@ -61,7 +60,6 @@ class LLM:
                 model="gemini-2.5-flash",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 temperature=1.0,  # Gemini 3.0+ defaults to 1.0
-                response_schema=Score.model_json_schema(),
             )
 
             self.remoteLLMs = {

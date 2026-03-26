@@ -55,7 +55,7 @@ def parse_score(response: MessagesState) -> Score:
     :rtype: int
     """
     score = response.get("structured_response")
-    score_res = response
+    score_res = extract_output(response)
     if isinstance(score, Score):
         return score
     elif score_res is not None:
@@ -77,10 +77,11 @@ def parse_response_for_tool_node(response: MessagesState) -> Response:
     :rtype: Response
     """
     structured_response = response.get("structured_response")
+    score_res = extract_output(response)
     if isinstance(structured_response, Response):
         return structured_response
-    elif response is not None:
-        data = json.loads(response)
+    elif score_res is not None:
+        data = json.loads(score_res)
         return Response.model_validate(data)
     else:
         return Response(
