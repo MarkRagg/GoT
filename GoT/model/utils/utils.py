@@ -1,6 +1,8 @@
 import json
 import re
 
+import numpy as np
+
 from GoT.model.runtime_graph import Response, Score
 from langgraph.graph import MessagesState
 from langchain_core.messages import AIMessage
@@ -167,3 +169,36 @@ def print_benchmark_result(results: dict, task_name: str, filter: str) -> None:
     print(f"Total: {n_total}")
     print(f"Correct answers (filter={filter}): {n_correct}")
     print(f"Wrong answers (filter={filter}): {n_wrong}")
+
+def print_benchmark_result_loglikehood(results: dict, task_name: str, filter_val: str) -> None:
+    # 1. Recupero i samples
+    samples = results.get("samples", {}).get(task_name, [])
+    
+    # 2. Filtro (solitamente filter="none" nel tuo caso)
+    flex_samples = [s for s in samples if filter_val in s.get("filter", "")]
+
+    n_total = len(flex_samples)
+    n_correct = 0
+
+    for s in flex_samples:
+        
+        try:
+            scores = [r[0][0] for r in s.get("resps", [])]
+                
+            if not scores:
+                continue
+
+            predicted_idx = int(np.argmax(scores))
+
+            if predicted_idx >= 5.0:
+                n_correct += 1
+                
+        except (ValueError, IndexError):
+            continue
+
+    n_wrong = n_total - n_correct
+
+    print(f"--- Risultati basati su RESPS (Task: {task_name}) ---")
+    print(f"Total: {n_total}")
+    print(f"Correct: {n_correct}")
+    print(f"Wrong: {n_wrong}")
