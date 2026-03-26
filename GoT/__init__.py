@@ -4,11 +4,11 @@ from dotenv import load_dotenv
 
 from lm_eval import evaluator, tasks
 from GoT.model.graph_model import call_graph
-from GoT.model.lm_wrapper import (
-    LangGraphBigBenchWrapper,
-    TestBigBenchWrapper
+from GoT.model.lm_wrapper import LangGraphBigBenchWrapper, TestBigBenchWrapper
+from GoT.model.utils.utils import (
+    print_benchmark_result,
+    print_benchmark_result_loglikehood,
 )
-from GoT.model.utils.utils import print_benchmark_result, print_benchmark_result_loglikehood
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger("GoT")
