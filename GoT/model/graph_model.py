@@ -105,6 +105,7 @@ crafter_agent = LLM().create_custom_agent(
         - Prefer generic names and parameters, never craft specific functions.
         - If the function contains specific numbers or values, it is wrong.
         - Craft only one function, it must contains always the docs.
+        - Never craft tool that raise exceptions.
         - Respond ONLY using the tool available.
         - No natural language.
         - No comments in the python interpreter.
