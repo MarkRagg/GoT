@@ -255,8 +255,7 @@ class LangGraphBigBenchWrapper(LM):
                 elif isinstance(request, tuple) and len(request) == 2:
                     context, continuation = request
                 else:
-                    context = ""
-                    continuation = str(request)
+                    context, continuation = request
 
                 # Se già calcolato, riutilizza lo score
                 if context in cache:
@@ -264,12 +263,15 @@ class LangGraphBigBenchWrapper(LM):
                 else:
                     result = call_graph(context)
                     generated_output = normalize_number(extract_output(result))
-                    score = self._calculate_likelihood_score(
-                        generated_output, continuation, context
-                    )
-                    cache[context] = score
+                    print(f"DEBUG - Context: {context}")
+                    cache[context] = generated_output
 
-                outputs.append((score, False))
+                gen_text = cache[context]
+                score = self._calculate_likelihood_score(
+                    gen_text, continuation, context
+                )
+
+                outputs.append((score, score >= 1.0))
 
             except Exception as e:
                 print(f"Error in BigBench loglikelihood request {i}: {e}")
@@ -293,39 +295,20 @@ class LangGraphBigBenchWrapper(LM):
         Calcola un score di likelihood per BigBench.
 
         Strategie:
-        1. Se la generazione contiene esattamente la continuation target -> score alto (0.0)
+        1. Se la generazione contiene esattamente la continuation target -> score alto (1.0)
         2. Se contiene la continuation parzialmente -> score medio
-        3. Altrimenti -> score basso (log della similarità)
+        3. Altrimenti -> score basso (0.0)
 
         Questo è un workaround poiché non abbiamo i veri logits.
         """
         gen_text = str(generated_text).strip().lower()
-        target = str(target_continuation).strip().lower()
-
-        # Caso 1: Match esatto
-        if gen_text == target:
-            return 0.0  # log(1) = 0, massima likelihood
-
-        # Caso 2: Target è contenuto nel testo generato
+        target = str(target_continuation).strip().lower().replace("(", "").replace(")", "")
+    
+        # Se il target è contenuto nella risposta (es: "a" è in "la risposta è a")
         if target in gen_text:
-            # Parziale match, score moderato
-            return math.log(0.8)
-
-        # Caso 3: Calcola sovrapposizione di parole
-        gen_words = set(gen_text.split())
-        target_words = set(target.split())
-
-        if not target_words:
-            return 0.0
-
-        overlap = len(gen_words & target_words) / len(target_words)
-
-        if overlap > 0:
-            # Maggiore è l'overlap, più alto lo score
-            return math.log(overlap)
-        else:
-            # Nessuna sovrapposizione
-            return float("-inf")
+            return 5.0 # Match trovato
+        
+        return -1.0 # Invece di -inf, usa un valore molto basso ma numerico
 
 
 @register_model("test_bigbench")
