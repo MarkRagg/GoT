@@ -132,6 +132,13 @@ def extract_output(result) -> str:
             last_msg = messages[-1]
 
             if hasattr(last_msg, "content"):
+                content = last_msg.content
+                if isinstance(content, list):
+                    text_parts = []
+                    for part in content:
+                        if isinstance(part, dict) and part.get("type") == "text":
+                            text_parts.append(part.get("text", ""))
+                    return "".join(text_parts).strip()
                 return str(last_msg.content)
             elif isinstance(last_msg, dict) and "content" in last_msg:
                 return str(last_msg["content"])
