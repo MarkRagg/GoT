@@ -1,6 +1,7 @@
 
 import json
 from random import shuffle
+import re
 
 from langchain.messages import HumanMessage
 
@@ -66,16 +67,21 @@ def gpqa_run(questions: list[dict[str, str]], max_run: int, test: bool) -> list[
         else:
             response = extract_output(call_graph(prompt))
         norm_res = normalize_number(response)
-        responses.append({"question": prompt, "response": norm_res, "correct_letter": correct_letter})
+        responses.append({"question": prompt, "response": norm_res, "filtered_answer": "", "correct_letter": correct_letter, "answer_success": 0.0})
         run_counter += 1
 
     return responses
 
 def gpqa_eval(responses: list[dict[str, str]]):
     correct = 0
+    
     for res in responses:
+        match = re.search(r"ANSWER:\s*([A-D])", res["response"], re.IGNORECASE)    
+        res["filtered_answer"] = match.group(1).upper() if match else "N/A"
+        
         if f"ANSWER: {res["correct_letter"]}" in res["response"]:
             correct += 1
+            res["answer_success"] = 1.0
 
     accuracy = correct / len(responses)
     print(f"Accuracy: {accuracy:.2f}")
