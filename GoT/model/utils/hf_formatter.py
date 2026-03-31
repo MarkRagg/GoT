@@ -55,21 +55,23 @@ def gpqa_format(dataset) -> list[dict[str, str]]:
 def gpqa_run(questions: list[dict[str, str]], max_run: int, test: bool) -> list[dict[str, str]]:
     responses = []
     run_counter = 0
-    agent = LLM().create_custom_agent(LLM().get_tools())
+    agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
     for q in questions:
         if run_counter >= max_run:
             break
         prompt = q["prompt"]
         correct_letter = q["correct_letter"]
-
-        if test:
-            response = extract_output(agent.invoke({"messages": [HumanMessage(content=prompt)]}))
-        else:
-            response = extract_output(call_graph(prompt))
-        norm_res = normalize_number(response)
-        responses.append({"question": prompt, "response": norm_res, "filtered_answer": "", "correct_letter": correct_letter, "answer_success": 0.0})
+        try:
+            if test:
+                response = extract_output(agent.invoke({"messages": [HumanMessage(content=prompt)]}, config={"recursion_limit": 5}))
+            else:
+                response = extract_output(call_graph(prompt))
+            norm_res = normalize_number(response)
+            responses.append({"question": prompt, "response": norm_res, "filtered_answer": "", "correct_letter": correct_letter, "answer_success": 0.0})
+        except Exception as e:
+            print(f"Error processing question: {e}")
+            responses.append({"question": prompt, "response": "Error", "filtered_answer": "", "correct_letter": correct_letter, "answer_success": 0.0})
         run_counter += 1
-
     return responses
 
 def gpqa_eval(responses: list[dict[str, str]]):
