@@ -2,6 +2,7 @@
 import json
 from random import shuffle
 import re
+from datasets import load_dataset
 
 from langchain.messages import HumanMessage
 
@@ -63,7 +64,7 @@ def gpqa_run(questions: list[dict[str, str]], max_run: int, test: bool) -> list[
         correct_letter = q["correct_letter"]
         try:
             if test:
-                response = extract_output(agent.invoke({"messages": [HumanMessage(content=prompt)]}, config={"recursion_limit": 5}))
+                response = extract_output(agent.invoke({"messages": [HumanMessage(content=prompt)]}, config={"recursion_limit": 10}))
             else:
                 response = extract_output(call_graph(prompt))
             norm_res = normalize_number(response)
@@ -93,3 +94,79 @@ def gpqa_eval(responses: list[dict[str, str]]):
 def save_eval_results(responses: list[dict[str, str]], model_name: str):
     with open(f"{model_name}_eval_results.json", "w") as f:
         json.dump(responses, f, indent=2)
+
+def gsm8k_format(dataset) -> list[dict[str, str]]:
+    questions = []
+    for data in dataset:
+        sample = data
+        question = sample['question']
+        correct_answer = sample['answer']
+        prompt = (
+            "Answer the following math problem. Respond in the following format: #### NUMBER "
+            "Think step by step before answering.\n\n"
+            f"{question}\n"
+            "Answer:"
+        )
+
+        questions.append({
+            "prompt": prompt,
+            "correct_answer": correct_answer
+        })
+
+    return questions
+
+def gsm8k_run(questions: list[dict[str, str]], max_run: int, test: bool) -> list[dict[str, str]]:
+    responses = []
+    run_counter = 0
+    agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
+    for q in questions:
+        if run_counter >= max_run:
+            break
+        prompt = q["prompt"]
+        correct_answer = q["correct_answer"]
+        try:
+            if test:
+                response = extract_output(agent.invoke({"messages": [HumanMessage(content=prompt)]}, config={"recursion_limit": 10}))
+            else:
+                response = extract_output(call_graph(prompt))
+            norm_res = normalize_number(response)
+            responses.append({"question": prompt, "response": norm_res, "filtered_answer": "", "correct_answer": correct_answer, "answer_success": 0.0})
+        except Exception as e:
+            print(f"Error processing question: {e}")
+            responses.append({"question": prompt, "response": "Error", "filtered_answer": "", "correct_answer": correct_answer, "answer_success": 0.0})
+        run_counter += 1
+    return responses
+
+def gsm8k_eval(responses: list[dict[str, str]]):
+    correct = 0
+    
+    for res in responses:
+        norm_res = re.search(r"####\s*(-?[\d,.]+)", res["response"])
+        norm_res = norm_res.group(1) if norm_res else "N/A"
+        norm_correct = normalize_number(res["correct_answer"])
+        res["filtered_answer"] = norm_res
+        
+        if norm_res in norm_correct:
+            correct += 1
+            res["answer_success"] = 1.0
+
+    accuracy = correct / len(responses)
+    print(f"Accuracy: {accuracy:.2f}")
+    print(f"Total: {len(responses)}")
+    print(f"Correct: {correct}")
+
+def use_gpqa(max_run: int, test: bool, model_name: str):
+    ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond")
+    data = ds["train"]
+    questions = gpqa_format(data)
+    responses = gpqa_run(questions, max_run=max_run, test=test)
+    gpqa_eval(responses)
+    save_eval_results(responses, model_name=model_name)
+
+def use_gsm8k(max_run: int, test: bool, model_name: str):
+    ds = load_dataset("gsm8k", "main")
+    data = ds["test"]
+    questions = gsm8k_format(data)
+    responses = gsm8k_run(questions, max_run=max_run, test=test)
+    gsm8k_eval(responses)
+    save_eval_results(responses, model_name=model_name)
