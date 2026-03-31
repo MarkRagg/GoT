@@ -1,3 +1,4 @@
+import ast
 import os
 from pathlib import Path
 import re
@@ -52,11 +53,18 @@ def craft_tool(tool_function: str) -> str:
         query = re.sub(r"^(\s|`)*(?i:python)?\s*", "", query)
         query = re.sub(r"(\s|`)*$", "", query)
         return query
+    
+    code = f"""\n\n{sanitize_input(tool_function)}"""
+
+    # Syntax check
+    try:
+        ast.parse(code)
+    except SyntaxError as e:
+        return f"Syntax error, tool not saved: {e}"
 
     try:
         base_dir = Path(__file__).parent
         file_path = base_dir / "ai_tool.py"
-        code = f"""\n\n{sanitize_input(tool_function)}"""
         with open(file_path, "a") as f:
             f.write(code)
         return "Tool crafted successfully."
