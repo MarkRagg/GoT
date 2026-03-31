@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 from lm_eval import evaluator, tasks
 from GoT.model.graph_model import call_graph
 from GoT.model.lm_wrapper import LangGraphBigBenchWrapper, TestBigBenchWrapper
+from GoT.model.utils.parse_args import call_benchmark, defining_and_parse_args
 from GoT.model.utils.utils import (
     print_benchmark_result,
     print_benchmark_result_loglikehood,
@@ -67,7 +68,8 @@ def custom_test():
 
 def main():
     # It could be changed with custom_test() to test a custom problem instead of the benchmark
-    lm_eval_graph_benchmark()
+    args = defining_and_parse_args()
+    call_benchmark(args)
 
 
 # let this be the last line of this file
