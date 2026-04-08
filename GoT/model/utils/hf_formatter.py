@@ -2,6 +2,7 @@
 import json
 from random import shuffle
 import re
+import time
 from datasets import load_dataset
 
 from langchain.messages import HumanMessage
@@ -57,7 +58,7 @@ def gpqa_run(questions: list[dict[str, str]], max_run: int, test: bool) -> list[
     responses = []
     run_counter = 0
     agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
-    for q in questions:
+    for q in questions[25:]:
         if run_counter >= max_run:
             break
         prompt = q["prompt"]
@@ -86,8 +87,8 @@ def gpqa_eval(responses: list[dict[str, str]]):
             correct += 1
             res["answer_success"] = 1.0
 
-    accuracy = correct / len(responses)
-    print(f"Accuracy: {accuracy:.2f}")
+    accuracy = (correct / len(responses) * 100 )
+    print(f"Accuracy: {accuracy:.2f}%")
     print(f"Total: {len(responses)}")
     print(f"Correct: {correct}")
 
@@ -126,7 +127,7 @@ def gsm8k_run(questions: list[dict[str, str]], max_run: int, test: bool) -> list
         correct_answer = q["correct_answer"]
         try:
             if test:
-                response = extract_output(agent.invoke({"messages": [HumanMessage(content=prompt)]}, config={"recursion_limit": 10}))
+                response = extract_output(agent.invoke({"messages": [HumanMessage(content=prompt)]}, config={"recursion_limit": 20}))
             else:
                 response = extract_output(call_graph(prompt))
             norm_res = normalize_number(response)
@@ -150,8 +151,71 @@ def gsm8k_eval(responses: list[dict[str, str]]):
             correct += 1
             res["answer_success"] = 1.0
 
-    accuracy = correct / len(responses)
-    print(f"Accuracy: {accuracy:.2f}")
+    accuracy = (correct / len(responses) * 100 )
+    print(f"Accuracy: {accuracy:.2f}%")
+    print(f"Total: {len(responses)}")
+    print(f"Correct: {correct}")
+
+def hendrycks_math_format(dataset) -> list[dict[str, str]]:
+    questions = []
+    for data in dataset:
+        sample = data
+        question = sample['problem']
+        reg_exp = re.search(r'\\boxed\{(\d+)\}', sample['solution'])
+        correct_answer = reg_exp.group(1) if reg_exp else "N/A"
+
+        prompt = (
+            "Answer the following math problem. Respond in the following format: \\boxed{number}. "
+            "Think step by step before answering.\n\n"
+            f"{question}\n"
+            "Answer:"
+        )
+
+        questions.append({
+            "prompt": prompt,
+            "correct_answer": correct_answer,
+            "level": sample['level']
+        })
+
+    return questions
+    
+def hendrycks_math_run(questions: list[dict[str, str]], max_run: int, test: bool) -> list[dict[str, str]]:
+    responses = []
+    run_counter = 0
+    agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
+    for q in questions:
+        if run_counter >= max_run:
+            break
+        prompt = q["prompt"]
+        correct_answer = q["correct_answer"]
+        try:
+            if test:
+                response = extract_output(agent.invoke({"messages": [HumanMessage(content=prompt)]}, config={"recursion_limit": 20}))
+            else:
+                response = extract_output(call_graph(prompt))
+            norm_res = normalize_number(response)
+            responses.append({"level": q["level"], "question": prompt, "response": norm_res, "filtered_answer": "", "correct_answer": correct_answer, "answer_success": 0.0})
+        except Exception as e:
+            print(f"Error processing question: {e}")
+            responses.append({"level": q["level"], "question": prompt, "response": "Error", "filtered_answer": "", "correct_answer": correct_answer, "answer_success": 0.0})
+        run_counter += 1
+    return responses
+
+def hendrycks_math_eval(responses: list[dict[str, str]]):
+    correct = 0
+    
+    for res in responses:
+        norm_res = re.search(r"\\boxed\{\s*(-?[\d,.]+)\s*\}", res["response"])
+        norm_res = norm_res.group(1) if norm_res else "N/A"
+        norm_correct = normalize_number(res["correct_answer"])
+        res["filtered_answer"] = norm_res
+        
+        if norm_res in norm_correct:
+            correct += 1
+            res["answer_success"] = 1.0
+
+    accuracy = (correct / len(responses) * 100 )
+    print(f"Accuracy: {accuracy:.2f}%")
     print(f"Total: {len(responses)}")
     print(f"Correct: {correct}")
 
@@ -169,4 +233,12 @@ def use_gsm8k(max_run: int, test: bool, model_name: str):
     questions = gsm8k_format(data)
     responses = gsm8k_run(questions, max_run=max_run, test=test)
     gsm8k_eval(responses)
+    save_eval_results(responses, model_name=model_name)
+
+def use_hendrycks_math(max_run: int, test: bool, model_name: str, type: str):
+    ds = load_dataset("EleutherAI/hendrycks_math", type)
+    data = ds["test"]
+    questions = hendrycks_math_format(data)
+    responses = hendrycks_math_run(questions, max_run=max_run, test=test)
+    hendrycks_math_eval(responses)
     save_eval_results(responses, model_name=model_name)
