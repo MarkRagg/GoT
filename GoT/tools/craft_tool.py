@@ -38,6 +38,18 @@ def install_dependency(package_name: str) -> str:
         return str(e)
 
 
+def is_valid_annotation(annotation):
+    if isinstance(annotation, ast.Name):
+        if annotation.id in {"list", "dict"}:
+            return False
+        return True
+
+    # Caso tipo generico: List[int], dict[str, int]
+    if isinstance(annotation, ast.Subscript):
+        return True
+
+    return False
+
 @tool
 def craft_tool(tool_function: str) -> str:
     """Save the function definition provided by the LLM as a tool that can be used by other agents.
@@ -58,9 +70,25 @@ def craft_tool(tool_function: str) -> str:
 
     # Syntax check
     try:
-        ast.parse(code)
+        tree = ast.parse(code)
     except SyntaxError as e:
         return f"Syntax error, tool not saved: {e}"
+
+    functions = [n for n in tree.body if isinstance(n, ast.FunctionDef)]
+    if len(functions) != 1:
+        return "Error: exactly one function must be defined."
+    
+    func = functions[0]
+
+    for arg in func.args.args:
+        if arg.annotation is None:
+            return f"Error: missing type annotation for '{arg.arg}'"
+
+        if not is_valid_annotation(arg.annotation):
+            return f"Error: invalid type for '{arg.arg}' (must be typed, e.g. List[int])"
+    
+    if func.returns is None:
+        return "Error: missing return type"
 
     try:
         base_dir = Path(__file__).parent
