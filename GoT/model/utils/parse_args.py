@@ -10,7 +10,7 @@ def defining_and_parse_args():
     parser.add_argument("--benchmark", required=True, type=str, choices=["gsm8k", "gpqa", "hendrycks_math"], help="The benchmark to run the model on.")
     parser.add_argument("--mode", required=True, type=str, choices=["graph", "standard"], help="Whether to run the standard model or the graph model.")
     parser.add_argument("--max_run", type=int, default=1, help="The maximum number of runs for the benchmark.")
-    parser.add_argument("--type", type=str, default="algebra", choices=["algebra", "counting_and_probabilities", "geometry", "intermediate_algebra", "number_theory", "precalculus", "statistics"], help="The type of math problems to run, only for hendrycks_math.")
+    parser.add_argument("--type", type=str, default="algebra", choices=["algebra", "counting_and_probability", "geometry", "intermediate_algebra", "number_theory", "precalculus", "statistics"], help="The type of math problems to run, only for hendrycks_math.")
 
     if len(sys.argv) == 1:
         parser.print_help(sys.stderr)
