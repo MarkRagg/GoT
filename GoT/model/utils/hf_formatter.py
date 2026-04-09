@@ -9,7 +9,7 @@ from langchain.messages import HumanMessage
 
 from GoT.model.graph_model import call_graph
 from GoT.model.ollama_llm import LLM
-from GoT.model.utils.utils import extract_output, normalize_number
+from GoT.model.utils.utils import extract_output, normalize_list, normalize_number, symbolic_equal
 
 def gpqa_format(dataset) -> list[dict[str, str]]:
     questions = []
@@ -161,11 +161,11 @@ def hendrycks_math_format(dataset) -> list[dict[str, str]]:
     for data in dataset:
         sample = data
         question = sample['problem']
-        reg_exp = re.search(r'\\boxed\{(\d+)\}', sample['solution'])
+        reg_exp = re.search(r"\\boxed\{(.*)\}", sample['solution'])
         correct_answer = reg_exp.group(1) if reg_exp else "N/A"
 
         prompt = (
-            "Answer the following math problem. Respond in the following format: \\boxed{number}. "
+            "Answer the following math problem. Respond in the following format: \\boxed{answer}. "
             "Think step by step before answering.\n\n"
             f"{question}\n"
             "Answer:"
@@ -205,12 +205,12 @@ def hendrycks_math_eval(responses: list[dict[str, str]]):
     correct = 0
     
     for res in responses:
-        norm_res = re.search(r"\\boxed\{\s*(-?[\d,.]+)\s*\}", res["response"])
+        norm_res = re.search(r"\\boxed\{(.*)\}", res["response"])
         norm_res = norm_res.group(1) if norm_res else "N/A"
         norm_correct = normalize_number(res["correct_answer"])
         res["filtered_answer"] = norm_res
         
-        if norm_res in norm_correct:
+        if (norm_res in norm_correct) or (normalize_list(norm_res) == normalize_list(norm_correct)) or (symbolic_equal(norm_res, norm_correct)):
             correct += 1
             res["answer_success"] = 1.0
 
