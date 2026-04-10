@@ -40,6 +40,20 @@ class ResultEval:
             answer_success=0.0,
         )
 
+    def to_dict(self):
+        return {
+            "question": self.question,
+            "response": self.response,
+            "filtered_answer": self.filtered_answer,
+            "correct_answer": self.correct_answer,
+            "answer_success": self.answer_success,
+        }
+
+
+def save_eval_results(responses: list[ResultEval], model_name: str):
+    with open(f"{model_name}_eval_results.json", "w") as f:
+        json.dump([res.to_dict() for res in responses], f, indent=2)
+
 
 def gpqa_format(dataset: Dataset) -> list[ResultEval]:
     questions = []
@@ -145,11 +159,6 @@ def gpqa_eval(responses: list[ResultEval]):
     print(f"Accuracy: {accuracy:.2f}%")
     print(f"Total: {len(responses)}")
     print(f"Correct: {correct}")
-
-
-def save_eval_results(responses: list[ResultEval], model_name: str):
-    with open(f"{model_name}_eval_results.json", "w") as f:
-        json.dump(responses, f, indent=2)
 
 
 def gsm8k_format(dataset: Dataset) -> list[ResultEval]:
