@@ -50,6 +50,7 @@ def is_valid_annotation(annotation):
 
     return False
 
+
 @tool
 def craft_tool(tool_function: str) -> str:
     """Save the function definition provided by the LLM as a tool that can be used by other agents.
@@ -65,7 +66,7 @@ def craft_tool(tool_function: str) -> str:
         query = re.sub(r"^(\s|`)*(?i:python)?\s*", "", query)
         query = re.sub(r"(\s|`)*$", "", query)
         return query
-    
+
     code = f"""\n\n{sanitize_input(tool_function)}"""
 
     # Syntax check
@@ -77,7 +78,7 @@ def craft_tool(tool_function: str) -> str:
     functions = [n for n in tree.body if isinstance(n, ast.FunctionDef)]
     if len(functions) != 1:
         return "Error: exactly one function must be defined."
-    
+
     func = functions[0]
 
     for arg in func.args.args:
@@ -86,7 +87,7 @@ def craft_tool(tool_function: str) -> str:
 
         if not is_valid_annotation(arg.annotation):
             return f"Error: invalid type for '{arg.arg}' (must be typed, e.g. List[int], set[str], dict[str, int], etc.)"
-    
+
     if func.returns is None:
         return "Error: missing return type"
 

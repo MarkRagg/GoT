@@ -7,8 +7,15 @@ from GoT.model.utils.utils import parse_response
 
 MAX_INTERACTIONS = 10
 
+
 @tool
-def divide_thought(first_part: str, second_part: str, first_context: str, second_context: str, reasoning_type: str = "pure_reasoning") -> str:
+def divide_thought(
+    first_part: str,
+    second_part: str,
+    first_context: str,
+    second_context: str,
+    reasoning_type: str = "pure_reasoning",
+) -> str:
     """
     This is a tool to divide the thought process into smaller steps.
     HOW TO USE THIS TOOL:
@@ -33,8 +40,8 @@ def divide_thought(first_part: str, second_part: str, first_context: str, second
     reasoning_agent = LLM().create_custom_agent(
         [],
         SystemMessage(
-            "You are an assistant specialized in reasoning. " \
-            "Your goal is to resolve the problem with reasoning. You should to reason step by step and write all your reasoning. " \
+            "You are an assistant specialized in reasoning. "
+            "Your goal is to resolve the problem with reasoning. You should to reason step by step and write all your reasoning. "
             "If the problem is too complex, you can divide it into smaller parts."
         ),
     )
@@ -45,14 +52,41 @@ def divide_thought(first_part: str, second_part: str, first_context: str, second
     runtime_graph.add_node(n2)
     runtime_graph.add_edge(runtime_graph.temp_node, n1)
     runtime_graph.add_edge(runtime_graph.temp_node, n2)
-    msg1 = [HumanMessage("Reason aboout this problem: " + first_part + "\nContext: " + first_context)]
-    msg2 = [HumanMessage("Reason aboout this problem: " + second_part + "\nContext: " + second_context)]
+    msg1 = [
+        HumanMessage(
+            "Reason aboout this problem: " + first_part + "\nContext: " + first_context
+        )
+    ]
+    msg2 = [
+        HumanMessage(
+            "Reason aboout this problem: "
+            + second_part
+            + "\nContext: "
+            + second_context
+        )
+    ]
     if reasoning_type == "pure_reasoning":
-        res1 = parse_response(reasoning_agent.invoke({"messages": msg1}, config={"recursion_limit": MAX_INTERACTIONS}))
-        res2 = parse_response(reasoning_agent.invoke({"messages": msg2}, config={"recursion_limit": MAX_INTERACTIONS}))
+        res1 = parse_response(
+            reasoning_agent.invoke(
+                {"messages": msg1}, config={"recursion_limit": MAX_INTERACTIONS}
+            )
+        )
+        res2 = parse_response(
+            reasoning_agent.invoke(
+                {"messages": msg2}, config={"recursion_limit": MAX_INTERACTIONS}
+            )
+        )
     else:
-        res1 = parse_response(tool_agent.invoke({"messages": msg1}, config={"recursion_limit": MAX_INTERACTIONS}))
-        res2 = parse_response(tool_agent.invoke({"messages": msg2}, config={"recursion_limit": MAX_INTERACTIONS}))
+        res1 = parse_response(
+            tool_agent.invoke(
+                {"messages": msg1}, config={"recursion_limit": MAX_INTERACTIONS}
+            )
+        )
+        res2 = parse_response(
+            tool_agent.invoke(
+                {"messages": msg2}, config={"recursion_limit": MAX_INTERACTIONS}
+            )
+        )
     runtime_graph.resolve_node(n1, res1)
     runtime_graph.resolve_node(n2, res2)
 
