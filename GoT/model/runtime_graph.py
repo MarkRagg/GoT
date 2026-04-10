@@ -33,6 +33,7 @@ class TestNode(RuntimeNode):
         prompt: str,
         response: str,
         score: int,
+        problem_complexity: int = 0,
         tool_used: List[str] = [],
         resolved: bool = False,
         need_tool_crafting: bool = False,
@@ -43,6 +44,7 @@ class TestNode(RuntimeNode):
         self.score = score
         self.tool_used = tool_used
         self.need_tool_crafting = need_tool_crafting
+        self.problem_complexity = problem_complexity
 
 
 class ToolNode(RuntimeNode):
@@ -144,13 +146,18 @@ class Score(BaseModel):
         description="Indicates whether the problem requires or it is useful to craft a new tool to be resolved.",
     )
 
+    problem_complexity: int = Field(
+        ...,
+        description="Integer between 0 and 5 indicating the complexity of the problem for an AI."
+    )  
+
 
 class Response(BaseModel):
     """Rapresents a response for a tool node."""
 
     response: str = Field(
         ...,
-        description="Final answer to the user request. No meta commentary. If the answer is a number, respond only with the number (but in string), without any text.",
+        description="Final answer to the user request. No meta commentary. If there is a format requirement, follow it.",
     )
     explanation: str = Field(
         ..., description="Short reasoning explaining how the answer was produced."
@@ -186,6 +193,11 @@ class RuntimeGraph:
             n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)
         ]
         return reasoning_nodes[0]
+    
+    def exist_reasoning_node_available(self) -> bool:
+        nodes = list(self.nodes.keys())
+        reasoning_nodes = [n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)]
+        return True if reasoning_nodes else False
 
     def exist_tool_available(self) -> bool:
         nodes = list(self.nodes.keys())

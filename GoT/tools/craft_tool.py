@@ -40,7 +40,7 @@ def install_dependency(package_name: str) -> str:
 
 def is_valid_annotation(annotation):
     if isinstance(annotation, ast.Name):
-        if annotation.id in {"list", "dict"}:
+        if annotation.id in {"list", "dict", "set"}:
             return False
         return True
 
@@ -85,7 +85,7 @@ def craft_tool(tool_function: str) -> str:
             return f"Error: missing type annotation for '{arg.arg}'"
 
         if not is_valid_annotation(arg.annotation):
-            return f"Error: invalid type for '{arg.arg}' (must be typed, e.g. List[int])"
+            return f"Error: invalid type for '{arg.arg}' (must be typed, e.g. List[int], set[str], dict[str, int], etc.)"
     
     if func.returns is None:
         return "Error: missing return type"
