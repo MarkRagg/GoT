@@ -19,7 +19,6 @@ dotenv = "^0.9.9"
 mlflow = "^3.9.0"
 lm-eval = {extras = ["math"], version = "^0.4.11"}
 boto3 = "^1.42.51"
-sympy = "^1.14.0"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.4.0"
@@ -50,5 +49,5 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [[tool.mypy.overrides]]
-module = ["lm_eval.*"]
+module = ["lm_eval.*", "datasets.*", "sympy.*"]
 follow_untyped_imports = true

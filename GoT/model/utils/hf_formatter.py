@@ -1,8 +1,7 @@
 import json
 from random import shuffle
 import re
-import time
-from datasets import load_dataset
+from datasets import Dataset, load_dataset
 
 from langchain.messages import HumanMessage
 
@@ -16,7 +15,33 @@ from GoT.model.utils.utils import (
 )
 
 
-def gpqa_format(dataset) -> list[dict[str, str]]:
+class ResultEval:
+    def __init__(
+        self,
+        question: str,
+        response: str,
+        filtered_answer: str,
+        correct_answer: str,
+        answer_success: float,
+    ):
+        self.question = question
+        self.response = response
+        self.filtered_answer = filtered_answer
+        self.correct_answer = correct_answer
+        self.answer_success = answer_success
+
+    @staticmethod
+    def create_empty_result(question: str, correct_answer: str):
+        return ResultEval(
+            question=question,
+            response="Error",
+            filtered_answer="",
+            correct_answer=correct_answer,
+            answer_success=0.0,
+        )
+
+
+def gpqa_format(dataset: Dataset) -> list[ResultEval]:
     questions = []
     # Mapping per trasformare l'indice della lista nelle lettere A, B, C, D
     index_to_letter = {0: "A", 1: "B", 2: "C", 3: "D"}
@@ -52,22 +77,24 @@ def gpqa_format(dataset) -> list[dict[str, str]]:
             f"D) {choices[3]}\n"
             "Answer:"
         )
-        questions.append({"prompt": prompt, "correct_letter": correct_letter})
+        questions.append(
+            ResultEval.create_empty_result(
+                question=prompt, correct_answer=correct_letter
+            )
+        )
 
     return questions
 
 
-def gpqa_run(
-    questions: list[dict[str, str]], max_run: int, test: bool
-) -> list[dict[str, str]]:
+def gpqa_run(questions: list[ResultEval], max_run: int, test: bool) -> list[ResultEval]:
     responses = []
     run_counter = 0
     agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
     for q in questions[25:]:
         if run_counter >= max_run:
             break
-        prompt = q["prompt"]
-        correct_letter = q["correct_letter"]
+        prompt = q.question
+        correct_letter = q.correct_answer
         try:
             if test:
                 response = extract_output(
@@ -80,39 +107,39 @@ def gpqa_run(
                 response = extract_output(call_graph(prompt))
             norm_res = normalize_number(response)
             responses.append(
-                {
-                    "question": prompt,
-                    "response": norm_res,
-                    "filtered_answer": "",
-                    "correct_letter": correct_letter,
-                    "answer_success": 0.0,
-                }
+                ResultEval(
+                    question=prompt,
+                    response=norm_res,
+                    filtered_answer="",
+                    correct_answer=correct_letter,
+                    answer_success=0.0,
+                )
             )
         except Exception as e:
             print(f"Error processing question: {e}")
             responses.append(
-                {
-                    "question": prompt,
-                    "response": "Error",
-                    "filtered_answer": "",
-                    "correct_letter": correct_letter,
-                    "answer_success": 0.0,
-                }
+                ResultEval(
+                    question=prompt,
+                    response="Error",
+                    filtered_answer="",
+                    correct_answer=correct_letter,
+                    answer_success=0.0,
+                )
             )
         run_counter += 1
     return responses
 
 
-def gpqa_eval(responses: list[dict[str, str]]):
+def gpqa_eval(responses: list[ResultEval]):
     correct = 0
 
     for res in responses:
-        match = re.search(r"ANSWER:\s*([A-D])", res["response"], re.IGNORECASE)
-        res["filtered_answer"] = match.group(1).upper() if match else "N/A"
+        match = re.search(r"ANSWER:\s*([A-D])", res.response, re.IGNORECASE)
+        res.filtered_answer = match.group(1).upper() if match else "N/A"
 
-        if f"ANSWER: {res['correct_letter']}" in res["response"]:
+        if f"ANSWER: {res.correct_answer}" in res.response:
             correct += 1
-            res["answer_success"] = 1.0
+            res.answer_success = 1.0
 
     accuracy = correct / len(responses) * 100
     print(f"Accuracy: {accuracy:.2f}%")
@@ -120,12 +147,12 @@ def gpqa_eval(responses: list[dict[str, str]]):
     print(f"Correct: {correct}")
 
 
-def save_eval_results(responses: list[dict[str, str]], model_name: str):
+def save_eval_results(responses: list[ResultEval], model_name: str):
     with open(f"{model_name}_eval_results.json", "w") as f:
         json.dump(responses, f, indent=2)
 
 
-def gsm8k_format(dataset) -> list[dict[str, str]]:
+def gsm8k_format(dataset: Dataset) -> list[ResultEval]:
     questions = []
     for data in dataset:
         sample = data
@@ -138,22 +165,26 @@ def gsm8k_format(dataset) -> list[dict[str, str]]:
             "Answer:"
         )
 
-        questions.append({"prompt": prompt, "correct_answer": correct_answer})
+        questions.append(
+            ResultEval.create_empty_result(
+                question=prompt, correct_answer=correct_answer
+            )
+        )
 
     return questions
 
 
 def gsm8k_run(
-    questions: list[dict[str, str]], max_run: int, test: bool
-) -> list[dict[str, str]]:
+    questions: list[ResultEval], max_run: int, test: bool
+) -> list[ResultEval]:
     responses = []
     run_counter = 0
     agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
     for q in questions:
         if run_counter >= max_run:
             break
-        prompt = q["prompt"]
-        correct_answer = q["correct_answer"]
+        prompt = q.question
+        correct_answer = q.correct_answer
         try:
             if test:
                 response = extract_output(
@@ -166,41 +197,41 @@ def gsm8k_run(
                 response = extract_output(call_graph(prompt))
             norm_res = normalize_number(response)
             responses.append(
-                {
-                    "question": prompt,
-                    "response": norm_res,
-                    "filtered_answer": "",
-                    "correct_answer": correct_answer,
-                    "answer_success": 0.0,
-                }
+                ResultEval(
+                    question=prompt,
+                    response=norm_res,
+                    filtered_answer="",
+                    correct_answer=correct_answer,
+                    answer_success=0.0,
+                )
             )
         except Exception as e:
             print(f"Error processing question: {e}")
             responses.append(
-                {
-                    "question": prompt,
-                    "response": "Error",
-                    "filtered_answer": "",
-                    "correct_answer": correct_answer,
-                    "answer_success": 0.0,
-                }
+                ResultEval(
+                    question=prompt,
+                    response="Error",
+                    filtered_answer="",
+                    correct_answer=correct_answer,
+                    answer_success=0.0,
+                )
             )
         run_counter += 1
     return responses
 
 
-def gsm8k_eval(responses: list[dict[str, str]]):
+def gsm8k_eval(responses: list[ResultEval]):
     correct = 0
 
     for res in responses:
-        norm_res = re.search(r"####\s*(-?[\d,.]+)", res["response"])
-        norm_res = norm_res.group(1) if norm_res else "N/A"
-        norm_correct = normalize_number(res["correct_answer"])
-        res["filtered_answer"] = norm_res
+        opt_res = re.search(r"####\s*(-?[\d,.]+)", res.response)
+        norm_res = opt_res.group(1) if opt_res else "N/A"
+        norm_correct = normalize_number(res.correct_answer)
+        res.filtered_answer = norm_res
 
         if norm_res in norm_correct:
             correct += 1
-            res["answer_success"] = 1.0
+            res.answer_success = 1.0
 
     accuracy = correct / len(responses) * 100
     print(f"Accuracy: {accuracy:.2f}%")
@@ -208,7 +239,7 @@ def gsm8k_eval(responses: list[dict[str, str]]):
     print(f"Correct: {correct}")
 
 
-def hendrycks_math_format(dataset) -> list[dict[str, str]]:
+def hendrycks_math_format(dataset: Dataset) -> list[ResultEval]:
     questions = []
     for data in dataset:
         sample = data
@@ -224,27 +255,25 @@ def hendrycks_math_format(dataset) -> list[dict[str, str]]:
         )
 
         questions.append(
-            {
-                "prompt": prompt,
-                "correct_answer": correct_answer,
-                "level": sample["level"],
-            }
+            ResultEval.create_empty_result(
+                question=prompt, correct_answer=correct_answer
+            )
         )
 
     return questions
 
 
 def hendrycks_math_run(
-    questions: list[dict[str, str]], max_run: int, test: bool
-) -> list[dict[str, str]]:
+    questions: list[ResultEval], max_run: int, test: bool
+) -> list[ResultEval]:
     responses = []
     run_counter = 0
     agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
     for q in questions:
         if run_counter >= max_run:
             break
-        prompt = q["prompt"]
-        correct_answer = q["correct_answer"]
+        prompt = q.question
+        correct_answer = q.correct_answer
         try:
             if test:
                 response = extract_output(
@@ -257,39 +286,37 @@ def hendrycks_math_run(
                 response = extract_output(call_graph(prompt))
             norm_res = normalize_number(response)
             responses.append(
-                {
-                    "level": q["level"],
-                    "question": prompt,
-                    "response": norm_res,
-                    "filtered_answer": "",
-                    "correct_answer": correct_answer,
-                    "answer_success": 0.0,
-                }
+                ResultEval(
+                    question=prompt,
+                    response=norm_res,
+                    filtered_answer="",
+                    correct_answer=correct_answer,
+                    answer_success=0.0,
+                )
             )
         except Exception as e:
             print(f"Error processing question: {e}")
             responses.append(
-                {
-                    "level": q["level"],
-                    "question": prompt,
-                    "response": "Error",
-                    "filtered_answer": "",
-                    "correct_answer": correct_answer,
-                    "answer_success": 0.0,
-                }
+                ResultEval(
+                    question=prompt,
+                    response="Error",
+                    filtered_answer="",
+                    correct_answer=correct_answer,
+                    answer_success=0.0,
+                )
             )
         run_counter += 1
     return responses
 
 
-def hendrycks_math_eval(responses: list[dict[str, str]]):
+def hendrycks_math_eval(responses: list[ResultEval]):
     correct = 0
 
     for res in responses:
-        norm_res = re.search(r"\\boxed\{(.*)\}", res["response"])
-        norm_res = norm_res.group(1) if norm_res else "N/A"
-        norm_correct = normalize_number(res["correct_answer"])
-        res["filtered_answer"] = norm_res
+        opt_res = re.search(r"\\boxed\{(.*)\}", res.response)
+        norm_res = opt_res.group(1) if opt_res else "N/A"
+        norm_correct = normalize_number(res.correct_answer)
+        res.filtered_answer = norm_res
 
         if (
             (norm_res in norm_correct)
@@ -297,7 +324,7 @@ def hendrycks_math_eval(responses: list[dict[str, str]]):
             or (symbolic_equal(norm_res, norm_correct))
         ):
             correct += 1
-            res["answer_success"] = 1.0
+            res.answer_success = 1.0
 
     accuracy = correct / len(responses) * 100
     print(f"Accuracy: {accuracy:.2f}%")
