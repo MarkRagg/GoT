@@ -148,8 +148,8 @@ class Score(BaseModel):
 
     problem_complexity: int = Field(
         ...,
-        description="Integer between 0 and 5 indicating the complexity of the problem for an AI."
-    )  
+        description="Integer between 0 and 5 indicating the complexity of the problem for an AI.",
+    )
 
 
 class Response(BaseModel):
@@ -193,10 +193,12 @@ class RuntimeGraph:
             n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)
         ]
         return reasoning_nodes[0]
-    
+
     def exist_reasoning_node_available(self) -> bool:
         nodes = list(self.nodes.keys())
-        reasoning_nodes = [n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)]
+        reasoning_nodes = [
+            n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)
+        ]
         return True if reasoning_nodes else False
 
     def exist_tool_available(self) -> bool:

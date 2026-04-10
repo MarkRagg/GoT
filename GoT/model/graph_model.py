@@ -116,17 +116,17 @@ crafter_agent = LLM().create_custom_agent(
 )
 
 reasoning_agent = LLM().create_custom_agent(
-        [divide_thought],
-        SystemMessage(
-            "You are an assistant specialized in divide the complexity. " \
-            "Your goal is to resolve the problem with reasoning. You should to reason step by step and write all your reasoning. " \
-            "You are forced to divide it into smaller parts." \
-            "The parts must be indipendent from each other and must be solvable at the same time." \
-            "Respond with the indicated format."
-        ),
-        response_format=Response,
-        type="remote_response_format",
-    )
+    [divide_thought],
+    SystemMessage(
+        "You are an assistant specialized in divide the complexity. "
+        "Your goal is to resolve the problem with reasoning. You should to reason step by step and write all your reasoning. "
+        "You are forced to divide it into smaller parts."
+        "The parts must be indipendent from each other and must be solvable at the same time."
+        "Respond with the indicated format."
+    ),
+    response_format=Response,
+    type="remote_response_format",
+)
 
 # Defining runtime graph
 runtime_graph = RuntimeGraph()
@@ -178,7 +178,9 @@ def tool_reasoning(messages: MessagesState):
             "Please, reason step by step about how to use these tools to solve the problem, without solving it. If the main solution require to craft a tool, only explain how to craft the tool"
         )
     )
-    result = parse_response(starting_agent.invoke(messages, config={"recursion_limit": MAX_INTERACTIONS}))
+    result = parse_response(
+        starting_agent.invoke(messages, config={"recursion_limit": MAX_INTERACTIONS})
+    )
     messages["messages"].append(AIMessage(result))
     runtime_graph.resolve_node(runtime_graph.temp_node, result)
     runtime_graph.temp_node = runtime_graph.nodes.get(runtime_graph.temp_node, [])[0]
@@ -203,12 +205,21 @@ def tool_call(messages: MessagesState):
         type="remote_response_format",
     )
     try:
-        res = tool_agent.invoke({"messages": messages["messages"], "tool_choice": Response}, config={"recursion_limit": MAX_INTERACTIONS})
-    except Exception as e:
-        message = [HumanMessage(content="Original task:\n" + parse_response(runtime_graph.goal)),
-                   HumanMessage(content="Divide the problem into smaller parts, you can't call the same tool twice.")]
+        res = tool_agent.invoke(
+            {"messages": messages["messages"], "tool_choice": Response},
+            config={"recursion_limit": MAX_INTERACTIONS},
+        )
+    except Exception:
+        message = [
+            HumanMessage(
+                content="Original task:\n" + parse_response(runtime_graph.goal)
+            ),
+            HumanMessage(
+                content="Divide the problem into smaller parts, you can't call the same tool twice."
+            ),
+        ]
         tool_agent = LLM().create_custom_agent(
-           [divide_thought],
+            [divide_thought],
             SystemMessage(
                 "You are an assistant specialized in tools. Your goal is to resolve the problem with "
                 " the tool that the user indicates to you. You HAVE to use the tool that the assistant indicates to you."
@@ -218,7 +229,10 @@ def tool_call(messages: MessagesState):
             response_format=Response,
             type="remote_response_format",
         )
-        res = tool_agent.invoke({"messages": message, "tool_choice": Response}, config={"recursion_limit": MAX_INTERACTIONS})        
+        res = tool_agent.invoke(
+            {"messages": message, "tool_choice": Response},
+            config={"recursion_limit": MAX_INTERACTIONS},
+        )
     tool_used = extract_tool_used(res)
     runtime_graph.temp_response.response = parse_response_for_tool_node(res).response
     parsed_res = f"Response: {parse_response_for_tool_node(res).response}\nExplanation: {parse_response_for_tool_node(res).explanation}"
@@ -257,7 +271,10 @@ def response_evaluation(messages: MessagesState):
     ]
 
     score_res = parse_score(
-        judge_agent.invoke({"messages": judge_messages, "tool_choice": Score}, config={"recursion_limit": MAX_INTERACTIONS})
+        judge_agent.invoke(
+            {"messages": judge_messages, "tool_choice": Score},
+            config={"recursion_limit": MAX_INTERACTIONS},
+        )
     )
     test_node.score = score_res.score
     test_node.need_tool_crafting = score_res.need_tool_crafting
@@ -277,7 +294,9 @@ def crafting(messages: MessagesState):
             content="Craft a tool to solve this problem using craft_tool. It must be a function"
         ),
     ]
-    craft_res = crafter_agent.invoke({"messages": crafting_messages}, config={"recursion_limit": MAX_INTERACTIONS})
+    craft_res = crafter_agent.invoke(
+        {"messages": crafting_messages}, config={"recursion_limit": MAX_INTERACTIONS}
+    )
     runtime_graph.temp_response.response = parse_response_for_tool_node(
         craft_res
     ).response
@@ -308,24 +327,30 @@ def test_result(messages: MessagesState):
     if not isinstance(test_node, TestNode):
         raise TypeError("Expected TestNode for scoring")
 
-    if test_node.score >= (COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity):
+    if test_node.score >= (
+        COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity
+    ):
         runtime_graph.add_edge(test_node, runtime_graph.temp_response)
         runtime_graph.temp_response.resolved = True
         return END
     elif (
-        test_node.score < (COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity)
+        test_node.score
+        < (COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity)
         and n is True
         and test_node.need_tool_crafting is True
     ):
         return "crafting"
     elif (
-        test_node.score < (COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity)
+        test_node.score
+        < (COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity)
         and n is True
     ):
-        if(test_node.need_tool_crafting is True):
+        if test_node.need_tool_crafting is True:
             test_node.response = "The problem is too complex to craft a new tool, try reason step by step or divide complexity."
         return "backtrack"
-    elif (test_node.score < (COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity)
+    elif (
+        test_node.score
+        < (COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity)
         and n is False
         and runtime_graph.exist_reasoning_node_available()
     ):
@@ -346,7 +371,11 @@ def reasoning_mode(messages: MessagesState):
     if not isinstance(reasoning_node, ReasoningNode):
         raise TypeError("Expected ReasoningNode for reasoning mode")
     msg = [HumanMessage(content=parse_response(runtime_graph.goal))]
-    result = parse_response(reasoning_agent.invoke({"messages": msg}, config={"recursion_limit": MAX_INTERACTIONS}))
+    result = parse_response(
+        reasoning_agent.invoke(
+            {"messages": msg}, config={"recursion_limit": MAX_INTERACTIONS}
+        )
+    )
     runtime_graph.resolve_node(reasoning_node, result)
     runtime_graph.temp_response.response = result
     test_node = TestNode(
@@ -360,6 +389,7 @@ def reasoning_mode(messages: MessagesState):
     runtime_graph.temp_node = test_node
     messages["messages"].append(AIMessage(result))
     return messages
+
 
 def backtrack(messages: MessagesState):
     test_node = runtime_graph.temp_node

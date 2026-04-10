@@ -165,10 +165,12 @@ def normalize_number(num_str: str) -> str:
 
     return num_str
 
+
 def normalize_list(s: str):
-    " Extract numbers from a string and return them as a sorted list. This is useful for comparing answers that are lists of numbers regardless of order."
+    "Extract numbers from a string and return them as a sorted list. This is useful for comparing answers that are lists of numbers regardless of order."
     nums = re.findall(r"-?\d+", s)
     return sorted(nums)
+
 
 def symbolic_equal(a, b):
     """Check if two mathematical expressions are symbolically equal."""
@@ -176,6 +178,7 @@ def symbolic_equal(a, b):
         return simplify(sympify(a) - sympify(b)) == 0
     except Exception:
         return False
+
 
 def print_benchmark_result(results: dict, task_name: str, filter: str) -> None:
     samples = results["samples"][task_name]
