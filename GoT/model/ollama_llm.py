@@ -59,7 +59,7 @@ class LLM:
             self.remoteLLMScoreFormat = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
                 api_key=os.environ.get("GEMINI_API_KEY"),
-                temperature=1.0,  # Gemini 3.0+ defaults to 1.0
+                temperature=0.7,  # Gemini 3.0+ defaults to 1.0
             )
 
             self.remoteLLMs = {
