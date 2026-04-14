@@ -3,7 +3,7 @@ name = "GoT"
 packages = [
     { include = "GoT" },
 ]
-version = "2.4.1"
+version = "1.0.0"
 description = "A template for Python projects, using Poetry"
 authors = ["Giovanni Ciatto <giovanni.ciatto@unibo.it>"]
 license = "Apache 2.0"
