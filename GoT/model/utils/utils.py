@@ -1,4 +1,8 @@
+import json
 import re
+
+import numpy as np
+from sympy import simplify, sympify
 
 from GoT.model.runtime_graph import Response, Score
 from langgraph.graph import MessagesState
@@ -52,10 +56,16 @@ def parse_score(response: MessagesState) -> Score:
     :rtype: int
     """
     score = response.get("structured_response")
+    score_res = extract_output(response)
     if isinstance(score, Score):
         return score
+    elif score_res is not None:
+        data = json.loads(score_res)
+        return Score.model_validate(data)
     else:
-        return Score(score=0, description="Failed to parse score")
+        return Score(
+            score=0, description="Failed to parse score", need_tool_crafting=False
+        )
 
 
 def parse_response_for_tool_node(response: MessagesState) -> Response:
@@ -68,8 +78,12 @@ def parse_response_for_tool_node(response: MessagesState) -> Response:
     :rtype: Response
     """
     structured_response = response.get("structured_response")
+    score_res = extract_output(response)
     if isinstance(structured_response, Response):
         return structured_response
+    elif score_res is not None:
+        data = json.loads(score_res)
+        return Response.model_validate(data)
     else:
         return Response(
             response="Failed to parse response",
@@ -119,8 +133,97 @@ def extract_output(result) -> str:
             last_msg = messages[-1]
 
             if hasattr(last_msg, "content"):
+                content = last_msg.content
+                if isinstance(content, list):
+                    text_parts = []
+                    for part in content:
+                        if isinstance(part, dict) and part.get("type") == "text":
+                            text_parts.append(part.get("text", ""))
+                    return "".join(text_parts).strip()
                 return str(last_msg.content)
             elif isinstance(last_msg, dict) and "content" in last_msg:
                 return str(last_msg["content"])
 
     return str(result) if result else ""
+
+
+def normalize_number(num_str: str) -> str:
+    """Remove commas and dollar sign."""
+    num_str = num_str.replace("$", "")
+    num_str = num_str.replace(",", "")
+    num_str = num_str.replace("*", "")
+    num_str = num_str.strip()
+
+    # Remove trailing .0 (and only .0)
+    if num_str.endswith(".0"):
+        # Ensure it's actually a valid number before trimming
+        try:
+            if float(num_str).is_integer():
+                num_str = str(int(float(num_str)))
+        except ValueError:
+            pass
+
+    return num_str
+
+
+def normalize_list(s: str):
+    "Extract numbers from a string and return them as a sorted list. This is useful for comparing answers that are lists of numbers regardless of order."
+    nums = re.findall(r"-?\d+", s)
+    return sorted(nums)
+
+
+def symbolic_equal(a, b):
+    """Check if two mathematical expressions are symbolically equal."""
+    try:
+        return simplify(sympify(a) - sympify(b)) == 0
+    except Exception:
+        return False
+
+
+def print_benchmark_result(results: dict, task_name: str, filter: str) -> None:
+    samples = results["samples"][task_name]
+
+    flex_samples = [s for s in samples if filter in s.get("filter", "")]
+
+    n_total = len(flex_samples)
+    n_correct = sum(1 for s in flex_samples if s.get("exact_match", 0) == 1.0)
+    n_wrong = n_total - n_correct
+
+    print(f"Total: {n_total}")
+    print(f"Correct answers (filter={filter}): {n_correct}")
+    print(f"Wrong answers (filter={filter}): {n_wrong}")
+
+
+def print_benchmark_result_loglikehood(
+    results: dict, task_name: str, filter_val: str
+) -> None:
+    # 1. Recupero i samples
+    samples = results.get("samples", {}).get(task_name, [])
+
+    # 2. Filtro (solitamente filter="none" nel tuo caso)
+    flex_samples = [s for s in samples if filter_val in s.get("filter", "")]
+
+    n_total = len(flex_samples)
+    n_correct = 0
+
+    for s in flex_samples:
+        try:
+            scores = [r[0][0] for r in s.get("resps", [])]
+
+            if not scores:
+                continue
+
+            predicted_idx = int(np.argmax(scores))
+
+            if predicted_idx >= 5.0:
+                n_correct += 1
+
+        except (ValueError, IndexError):
+            continue
+
+    n_wrong = n_total - n_correct
+
+    print(f"--- Risultati basati su RESPS (Task: {task_name}) ---")
+    print(f"Total: {n_total}")
+    print(f"Correct: {n_correct}")
+    print(f"Wrong: {n_wrong}")

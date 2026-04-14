@@ -1,7 +1,7 @@
 from typing import Dict, List
 from langgraph.graph import MessagesState
 from langchain_core.messages import AnyMessage, HumanMessage
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class RuntimeNode:
@@ -33,14 +33,18 @@ class TestNode(RuntimeNode):
         prompt: str,
         response: str,
         score: int,
+        problem_complexity: int = 0,
         tool_used: List[str] = [],
         resolved: bool = False,
+        need_tool_crafting: bool = False,
     ):
         super().__init__(resolved)
         self.prompt = prompt
         self.response = response
         self.score = score
         self.tool_used = tool_used
+        self.need_tool_crafting = need_tool_crafting
+        self.problem_complexity = problem_complexity
 
 
 class ToolNode(RuntimeNode):
@@ -89,14 +93,14 @@ class BacktrackNode(RuntimeNode):
         self.feedback = feedback
 
 
-class ContextNode(RuntimeNode):
+class ReasoningNode(RuntimeNode):
     def __init__(
         self,
-        context: str,
+        reasoning: str,
         resolved: bool = False,
     ):
         super().__init__(resolved)
-        self.context = context
+        self.reasoning = reasoning
 
 
 class ResponseNode(RuntimeNode):
@@ -109,28 +113,55 @@ class ResponseNode(RuntimeNode):
         self.response = response
 
 
+class CraftingNode(RuntimeNode):
+    def __init__(
+        self,
+        response: str,
+        tool_crafted: str = "",
+        resolved: bool = False,
+    ):
+        super().__init__(resolved)
+        self.response = response
+        self.tool_crafted = tool_crafted
+
+
 class Score(BaseModel):
     """Rapresents a score for a test node.
 
     Attributes:
         score: int - The score assigned to the test node.
         description: str - A description or rationale for the assigned score.
+        need_tool_crafting: bool - Indicates whether the test node requires crafting a new tool to be resolved.
     """
 
-    score: int
-    description: str
+    score: int = Field(..., description="Integer score between 0 and 6 inclusive.")
+
+    description: str = Field(
+        ...,
+        description="Short justification (1-3 sentences) explaining why the score was assigned.",
+    )
+
+    need_tool_crafting: bool = Field(
+        ...,
+        description="Indicates whether the problem requires or it is useful to craft a new tool to be resolved.",
+    )
+
+    problem_complexity: int = Field(
+        ...,
+        description="Integer between 0 and 5 indicating the complexity of the problem for an AI.",
+    )
 
 
 class Response(BaseModel):
-    """Rapresents a response for a tool node.
+    """Rapresents a response for a tool node."""
 
-    Attributes:
-        response: str - The synthethic response.
-        explanation: str - An explanation or rationale for the response.
-    """
-
-    response: str
-    explanation: str
+    response: str = Field(
+        ...,
+        description="Final answer to the user request. No meta commentary. If there is a format requirement, follow it.",
+    )
+    explanation: str = Field(
+        ..., description="Short reasoning explaining how the answer was produced."
+    )
 
 
 class RuntimeGraph:
@@ -156,10 +187,19 @@ class RuntimeGraph:
             node.response = response
         node.resolved = True
 
-    def call_tool_node(self) -> ToolNode:
+    def call_tool_node(self) -> ReasoningNode:
         nodes = list(self.nodes.keys())
-        call_nodes = [n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)]
-        return call_nodes[0]
+        reasoning_nodes = [
+            n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)
+        ]
+        return reasoning_nodes[0]
+
+    def exist_reasoning_node_available(self) -> bool:
+        nodes = list(self.nodes.keys())
+        reasoning_nodes = [
+            n for n in nodes if (isinstance(n, ReasoningNode) and not n.resolved)
+        ]
+        return True if reasoning_nodes else False
 
     def exist_tool_available(self) -> bool:
         nodes = list(self.nodes.keys())
@@ -169,6 +209,13 @@ class RuntimeGraph:
     def get_resolved_tools(self):
         resolved_nodes = [t for t in self.tools_available.keys() if t.resolved is True]
         return [self.tools_available[n] for n in resolved_nodes]
+
+    def is_craftin_node_resolved(self) -> bool:
+        nodes = list(self.nodes.keys())
+        crafting_nodes = [
+            n for n in nodes if (isinstance(n, CraftingNode) and n.resolved)
+        ]
+        return True if crafting_nodes else False
 
     def append_prompt_to_messages_state(
         self, node: TestNode | ToolNode | CompletitionNode | GoalNode
@@ -181,6 +228,7 @@ class RuntimeGraph:
         return MessagesState(messages=messages)
 
     def clear(self):
+        RuntimeNode._id_counter = 0
         self.nodes = {}
         self.tools_available = {}
         self.temp_node = RuntimeNode()

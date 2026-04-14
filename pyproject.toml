@@ -12,12 +12,12 @@ readme = "README.md"
 [tool.poetry.dependencies]
 # update the Python versions in .github/workflows/check.yml if you change this
 python = ">= 3.10.0 < 3.14.0"
-langchain = "^1.2.4"
+langchain = {extras = ["google-genai", "openai"], version = "^1.2.11"}
 langchain-openai = "^1.1.7"
 langgraph = "^1.0.6"
 dotenv = "^0.9.9"
 mlflow = "^3.9.0"
-lm-eval = "^0.4.10"
+lm-eval = {extras = ["math"], version = "^0.4.11"}
 boto3 = "^1.42.51"
 
 [tool.poetry.group.dev.dependencies]
@@ -49,5 +49,5 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [[tool.mypy.overrides]]
-module = ["lm_eval.*"]
+module = ["lm_eval.*", "datasets.*", "sympy.*"]
 follow_untyped_imports = true
