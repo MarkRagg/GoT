@@ -21,6 +21,8 @@ def divide_thought(
     HOW TO USE THIS TOOL:
     - Call it when you think the problem is complex.
     - The two parts must be as independent as possible.
+    IMPORTANT NOTES:
+    - You can't use the result of the first part to reason about the second part, and vice versa. The two parts must be as independent as possible.
      Arguments:
     - first_part: the first part of the thought process
     - second_part: the second part of the thought process
