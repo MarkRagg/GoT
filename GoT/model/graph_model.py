@@ -55,6 +55,7 @@ judge_agent = LLM().create_custom_agent(
 
         Rules:
         - You MUST respond ONLY using the Score function.
+        - You must consider if the format of the answer follow the instruction
         - You cannot give the full solution, only hints.
         - If a response suggest the need of crafting a tool, score it with 1 or less and specify clearly the need of a new tool to solve the problem.
         - Do not write natural language outside the function.
