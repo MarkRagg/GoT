@@ -103,7 +103,7 @@ def gpqa_format(dataset: Dataset) -> list[ResultEval]:
 def gpqa_run(questions: list[ResultEval], max_run: int, test: bool) -> list[ResultEval]:
     responses = []
     run_counter = 0
-    agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
+    agent = LLM().create_custom_agent(LLM().get_tools())
     for q in questions[25:]:
         if run_counter >= max_run:
             break
@@ -188,7 +188,7 @@ def gsm8k_run(
 ) -> list[ResultEval]:
     responses = []
     run_counter = 0
-    agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
+    agent = LLM().create_custom_agent(LLM().get_tools())
     for q in questions:
         if run_counter >= max_run:
             break
@@ -277,8 +277,8 @@ def hendrycks_math_run(
 ) -> list[ResultEval]:
     responses = []
     run_counter = 0
-    agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
-    for q in questions:
+    agent = LLM().create_custom_agent(LLM().get_tools())
+    for q in questions[10:]:
         if run_counter >= max_run:
             break
         prompt = q.question
