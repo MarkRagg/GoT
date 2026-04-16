@@ -250,6 +250,43 @@ def benchmark_run(
     return responses
 
 
+def gaia_format(dataset: Dataset) -> list[ResultEval]:
+    questions = []
+    for data in dataset:
+        sample = data
+        question = sample["Question"]
+        correct_answer = sample["Final answer"]
+        prompt = (
+            "Answer the following question. Think step by step before answering.\n\n"
+            f"{question}\n"
+            "Answer:"
+        )
+
+        questions.append(
+            ResultEval.create_empty_result(
+                question=prompt, correct_answer=correct_answer
+            )
+        )
+
+    return questions
+
+def gaia_eval(responses: list[ResultEval]):
+    correct = 0
+
+    for res in responses:
+        norm_res = normalize_number(res.response)
+        norm_correct = normalize_number(res.correct_answer)
+        res.filtered_answer = norm_res
+
+        if norm_res in norm_correct:
+            correct += 1
+            res.answer_success = 1.0
+
+    accuracy = correct / len(responses) * 100
+    print(f"Accuracy: {accuracy:.2f}%")
+    print(f"Total: {len(responses)}")
+    print(f"Correct: {correct}")
+
 def use_gpqa(max_run: int, test: bool, model_name: str):
     ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond")
     data = ds["train"]
@@ -274,4 +311,12 @@ def use_hendrycks_math(max_run: int, test: bool, model_name: str, type: str):
     questions = hendrycks_math_format(data)
     responses = benchmark_run(questions, max_run=max_run, test=test)
     hendrycks_math_eval(responses)
+    save_eval_results(responses, model_name=model_name)
+
+def use_gaia(max_run: int, test: bool, model_name: str):
+    ds = load_dataset("gaia-benchmark/GAIA", "2023_level1")
+    data = ds["test"]
+    questions = gaia_format(data)
+    responses = benchmark_run(questions, max_run=max_run, test=test)
+    gaia_eval(responses)
     save_eval_results(responses, model_name=model_name)
