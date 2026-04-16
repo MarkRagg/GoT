@@ -56,6 +56,8 @@ def craft_tool(tool_function: str) -> str:
     """Save the function definition provided by the LLM as a tool that can be used by other agents.
     The function should be defined as a python function.
     The function should be general and reusable, and should not be specific to the current problem.
+    The function must not use tuple as args type.
+    The function must be defined as gemini api format, with type annotations for all arguments and return type.
     The function should be defined in a way that it can be imported and used by other agents."""
 
     def sanitize_input(query: str) -> str:

@@ -100,50 +100,6 @@ def gpqa_format(dataset: Dataset) -> list[ResultEval]:
     return questions
 
 
-def gpqa_run(questions: list[ResultEval], max_run: int, test: bool) -> list[ResultEval]:
-    responses = []
-    run_counter = 0
-    agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
-    for q in questions[25:]:
-        if run_counter >= max_run:
-            break
-        prompt = q.question
-        correct_letter = q.correct_answer
-        try:
-            if test:
-                response = extract_output(
-                    agent.invoke(
-                        {"messages": [HumanMessage(content=prompt)]},
-                        config={"recursion_limit": 10},
-                    )
-                )
-            else:
-                response = extract_output(call_graph(prompt))
-            norm_res = normalize_number(response)
-            responses.append(
-                ResultEval(
-                    question=prompt,
-                    response=norm_res,
-                    filtered_answer="",
-                    correct_answer=correct_letter,
-                    answer_success=0.0,
-                )
-            )
-        except Exception as e:
-            print(f"Error processing question: {e}")
-            responses.append(
-                ResultEval(
-                    question=prompt,
-                    response="Error",
-                    filtered_answer="",
-                    correct_answer=correct_letter,
-                    answer_success=0.0,
-                )
-            )
-        run_counter += 1
-    return responses
-
-
 def gpqa_eval(responses: list[ResultEval]):
     correct = 0
 
@@ -181,52 +137,6 @@ def gsm8k_format(dataset: Dataset) -> list[ResultEval]:
         )
 
     return questions
-
-
-def gsm8k_run(
-    questions: list[ResultEval], max_run: int, test: bool
-) -> list[ResultEval]:
-    responses = []
-    run_counter = 0
-    agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
-    for q in questions:
-        if run_counter >= max_run:
-            break
-        prompt = q.question
-        correct_answer = q.correct_answer
-        try:
-            if test:
-                response = extract_output(
-                    agent.invoke(
-                        {"messages": [HumanMessage(content=prompt)]},
-                        config={"recursion_limit": 20},
-                    )
-                )
-            else:
-                response = extract_output(call_graph(prompt))
-            norm_res = normalize_number(response)
-            responses.append(
-                ResultEval(
-                    question=prompt,
-                    response=norm_res,
-                    filtered_answer="",
-                    correct_answer=correct_answer,
-                    answer_success=0.0,
-                )
-            )
-        except Exception as e:
-            print(f"Error processing question: {e}")
-            responses.append(
-                ResultEval(
-                    question=prompt,
-                    response="Error",
-                    filtered_answer="",
-                    correct_answer=correct_answer,
-                    answer_success=0.0,
-                )
-            )
-        run_counter += 1
-    return responses
 
 
 def gsm8k_eval(responses: list[ResultEval]):
@@ -272,13 +182,35 @@ def hendrycks_math_format(dataset: Dataset) -> list[ResultEval]:
     return questions
 
 
-def hendrycks_math_run(
+def hendrycks_math_eval(responses: list[ResultEval]):
+    correct = 0
+
+    for res in responses:
+        opt_res = re.search(r"\\boxed\{(.*)\}", res.response)
+        norm_res = opt_res.group(1) if opt_res else "N/A"
+        norm_correct = normalize_number(res.correct_answer)
+        res.filtered_answer = norm_res
+
+        if (
+            (norm_res in norm_correct)
+            or (normalize_list(norm_res) == normalize_list(norm_correct))
+            or (symbolic_equal(norm_res, norm_correct))
+        ):
+            correct += 1
+            res.answer_success = 1.0
+
+    accuracy = correct / len(responses) * 100
+    print(f"Accuracy: {accuracy:.2f}%")
+    print(f"Total: {len(responses)}")
+    print(f"Correct: {correct}")
+
+def benchmark_run(
     questions: list[ResultEval], max_run: int, test: bool
 ) -> list[ResultEval]:
     responses = []
     run_counter = 0
-    agent = LLM().create_custom_agent(LLM().get_tools() + LLM().get_craft_tool())
-    for q in questions:
+    agent = LLM().create_custom_agent(LLM().get_tools())
+    for q in questions[40:]:
         if run_counter >= max_run:
             break
         prompt = q.question
@@ -318,20 +250,35 @@ def hendrycks_math_run(
     return responses
 
 
-def hendrycks_math_eval(responses: list[ResultEval]):
+def gaia_format(dataset: Dataset) -> list[ResultEval]:
+    questions = []
+    for data in dataset:
+        sample = data
+        question = sample["Question"]
+        correct_answer = sample["Final answer"]
+        prompt = (
+            "Answer the following question. Think step by step before answering.\n\n"
+            f"{question}\n"
+            "Answer:"
+        )
+
+        questions.append(
+            ResultEval.create_empty_result(
+                question=prompt, correct_answer=correct_answer
+            )
+        )
+
+    return questions
+
+def gaia_eval(responses: list[ResultEval]):
     correct = 0
 
     for res in responses:
-        opt_res = re.search(r"\\boxed\{(.*)\}", res.response)
-        norm_res = opt_res.group(1) if opt_res else "N/A"
+        norm_res = normalize_number(res.response)
         norm_correct = normalize_number(res.correct_answer)
         res.filtered_answer = norm_res
 
-        if (
-            (norm_res in norm_correct)
-            or (normalize_list(norm_res) == normalize_list(norm_correct))
-            or (symbolic_equal(norm_res, norm_correct))
-        ):
+        if norm_res in norm_correct:
             correct += 1
             res.answer_success = 1.0
 
@@ -340,12 +287,11 @@ def hendrycks_math_eval(responses: list[ResultEval]):
     print(f"Total: {len(responses)}")
     print(f"Correct: {correct}")
 
-
 def use_gpqa(max_run: int, test: bool, model_name: str):
     ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond")
     data = ds["train"]
     questions = gpqa_format(data)
-    responses = gpqa_run(questions, max_run=max_run, test=test)
+    responses = benchmark_run(questions, max_run=max_run, test=test)
     gpqa_eval(responses)
     save_eval_results(responses, model_name=model_name)
 
@@ -354,7 +300,7 @@ def use_gsm8k(max_run: int, test: bool, model_name: str):
     ds = load_dataset("gsm8k", "main")
     data = ds["test"]
     questions = gsm8k_format(data)
-    responses = gsm8k_run(questions, max_run=max_run, test=test)
+    responses = benchmark_run(questions, max_run=max_run, test=test)
     gsm8k_eval(responses)
     save_eval_results(responses, model_name=model_name)
 
@@ -363,6 +309,14 @@ def use_hendrycks_math(max_run: int, test: bool, model_name: str, type: str):
     ds = load_dataset("EleutherAI/hendrycks_math", type)
     data = ds["test"]
     questions = hendrycks_math_format(data)
-    responses = hendrycks_math_run(questions, max_run=max_run, test=test)
+    responses = benchmark_run(questions, max_run=max_run, test=test)
     hendrycks_math_eval(responses)
+    save_eval_results(responses, model_name=model_name)
+
+def use_gaia(max_run: int, test: bool, model_name: str):
+    ds = load_dataset("gaia-benchmark/GAIA", "2023_level1")
+    data = ds["test"]
+    questions = gaia_format(data)
+    responses = benchmark_run(questions, max_run=max_run, test=test)
+    gaia_eval(responses)
     save_eval_results(responses, model_name=model_name)
