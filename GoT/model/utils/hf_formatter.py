@@ -1,7 +1,9 @@
 import json
+import os
 from random import shuffle
 import re
 from datasets import Dataset, load_dataset
+from huggingface_hub import hf_hub_download
 
 from langchain.messages import HumanMessage
 
@@ -14,6 +16,7 @@ from GoT.model.utils.utils import (
     symbolic_equal,
 )
 
+TOKEN = os.getenv("HF_TOKEN")
 
 class ResultEval:
     def __init__(
@@ -210,7 +213,7 @@ def benchmark_run(
     responses = []
     run_counter = 0
     agent = LLM().create_custom_agent(LLM().get_tools())
-    for q in questions[40:]:
+    for q in questions:
         if run_counter >= max_run:
             break
         prompt = q.question
@@ -255,6 +258,16 @@ def gaia_format(dataset: Dataset) -> list[ResultEval]:
     for data in dataset:
         sample = data
         question = sample["Question"]
+        attachment = sample.get("file_name", None)
+        if attachment:
+            abs_path = hf_hub_download(
+                    repo_id="gaia-benchmark/GAIA",
+                    filename=f"2023/validation/{attachment}",
+                    repo_type="dataset",
+                    token=TOKEN
+                )
+            print(abs_path)
+            question += f"\nAttachment file path: {abs_path}"
         correct_answer = sample["Final answer"]
         prompt = (
             "Answer the following question. Think step by step before answering.\n\n"
@@ -288,35 +301,31 @@ def gaia_eval(responses: list[ResultEval]):
     print(f"Correct: {correct}")
 
 def use_gpqa(max_run: int, test: bool, model_name: str):
-    ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond")
-    data = ds["train"]
-    questions = gpqa_format(data)
+    ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond", split="train")
+    questions = gpqa_format(ds)
     responses = benchmark_run(questions, max_run=max_run, test=test)
     gpqa_eval(responses)
     save_eval_results(responses, model_name=model_name)
 
 
 def use_gsm8k(max_run: int, test: bool, model_name: str):
-    ds = load_dataset("gsm8k", "main")
-    data = ds["test"]
-    questions = gsm8k_format(data)
+    ds = load_dataset("gsm8k", "main", split="test")
+    questions = gsm8k_format(ds)
     responses = benchmark_run(questions, max_run=max_run, test=test)
     gsm8k_eval(responses)
     save_eval_results(responses, model_name=model_name)
 
 
 def use_hendrycks_math(max_run: int, test: bool, model_name: str, type: str):
-    ds = load_dataset("EleutherAI/hendrycks_math", type)
-    data = ds["test"]
-    questions = hendrycks_math_format(data)
+    ds = load_dataset("EleutherAI/hendrycks_math", type, split="test")
+    questions = hendrycks_math_format(ds)
     responses = benchmark_run(questions, max_run=max_run, test=test)
     hendrycks_math_eval(responses)
     save_eval_results(responses, model_name=model_name)
 
 def use_gaia(max_run: int, test: bool, model_name: str):
-    ds = load_dataset("gaia-benchmark/GAIA", "2023_level1")
-    data = ds["test"]
-    questions = gaia_format(data)
+    ds = load_dataset("gaia-benchmark/GAIA", "2023_level1", split="validation")
+    questions = gaia_format(ds)
     responses = benchmark_run(questions, max_run=max_run, test=test)
     gaia_eval(responses)
     save_eval_results(responses, model_name=model_name)
