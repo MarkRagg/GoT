@@ -107,10 +107,12 @@ class ResponseNode(RuntimeNode):
     def __init__(
         self,
         response: str,
+        explanation: str = "",
         resolved: bool = False,
     ):
         super().__init__(resolved)
         self.response = response
+        self.explanation = explanation
 
 
 class CraftingNode(RuntimeNode):
