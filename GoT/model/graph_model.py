@@ -82,6 +82,7 @@ crafter_agent = LLM().create_custom_agent(
     LLM().get_craft_tool(),
     SystemMessage(
         """
+        You are a master coder specialized in crafting tools for other agents.
         You create reusable Python tools for other agents.
 
         The tool must be GENERAL and parameterized.
@@ -236,6 +237,7 @@ def tool_call(messages: MessagesState):
         )
     tool_used = extract_tool_used(res)
     runtime_graph.temp_response.response = parse_response_for_tool_node(res).response
+    runtime_graph.temp_response.explanation = parse_response_for_tool_node(res).explanation
     parsed_res = f"Response: {parse_response_for_tool_node(res).response}\nExplanation: {parse_response_for_tool_node(res).explanation}"
     runtime_graph.resolve_node(call_node, parsed_res)
 
@@ -289,8 +291,10 @@ def crafting(messages: MessagesState):
     runtime_graph.add_node(crafting_node)
     runtime_graph.add_edge(runtime_graph.temp_node, crafting_node)
     runtime_graph.temp_node = crafting_node
+    ai_feedback = runtime_graph.temp_response.explanation
     crafting_messages = [
         HumanMessage(content="Original task:\n" + parse_response(runtime_graph.goal)),
+        AIMessage(content=ai_feedback),
         SystemMessage(
             content="Craft a tool to solve this problem using craft_tool. It must be a function"
         ),
