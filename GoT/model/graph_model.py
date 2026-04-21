@@ -158,22 +158,6 @@ def goal(prompt: MessagesState):
     return prompt
 
 
-# def tool_expand(goal: MessagesState):
-#     msg = parse_response(goal)
-#     sys_msg = "Please make a list using '-' to denote each tool in a probabilistic order, don't use this character for other reasons. Select only the tool(s) you want to use to solve this problem."
-#     messages = [
-#         HumanMessage(msg),
-#         SystemMessage(sys_msg),
-#     ]
-#     res = starting_agent.invoke({"messages": messages}, config={"recursion_limit": MAX_INTERACTIONS})
-#     str_res = parse_response(res)
-#     goal["messages"].append(AIMessage(content=str_res))
-#     # tool_list = parse_tool_list(str_res)  # Toglie elementi inutili
-#     # add tool nodes in the runtime graph
-
-#     return goal
-
-
 def tool_reasoning(messages: MessagesState):
     messages["messages"].append(
         HumanMessage(
@@ -438,7 +422,6 @@ def call_graph(prompt: str):
 def invoke_graph():
     graph = StateGraph(MessagesState)
     graph.add_node(goal)
-    # graph.add_node(tool_expand)
     graph.add_node(tool_reasoning)
     graph.add_node(tool_call)
     graph.add_node(backtrack)
@@ -447,7 +430,6 @@ def invoke_graph():
     graph.add_node(response_evaluation)
     graph.add_node(reasoning_mode)
     graph.add_edge(START, "goal")
-    # graph.add_edge("goal", "tool_expand")
     graph.add_edge("goal", "tool_reasoning")
     graph.add_edge("tool_reasoning", "tool_call")
     graph.add_edge("tool_call", "response_evaluation")
