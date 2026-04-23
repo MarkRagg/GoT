@@ -82,7 +82,7 @@ crafter_agent = LLM().create_custom_agent(
     LLM().get_craft_tool(),
     SystemMessage(
         """
-        You are a master coder specialized in crafting tools for other agents.
+        You are a specialized in coding and write new useful method.
         You create reusable Python tools for other agents.
 
         The tool must be GENERAL and parameterized.
@@ -311,28 +311,24 @@ def crafting(messages: MessagesState):
 
 
 def test_result(messages: MessagesState):
-    n = runtime_graph.exist_tool_available()
+    is_tool_path_available = runtime_graph.exist_tool_available()
     test_node = runtime_graph.temp_node
     if not isinstance(test_node, TestNode):
         raise TypeError("Expected TestNode for scoring")
-
-    if test_node.score >= (
-        COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity
-    ):
+    threshold = COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity
+    if test_node.score >= threshold:
         runtime_graph.add_edge(test_node, runtime_graph.temp_response)
         runtime_graph.temp_response.resolved = True
         return END
     elif (
-        test_node.score
-        < (COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity)
-        and n is True
+        test_node.score < threshold
+        and is_tool_path_available is True
         and test_node.need_tool_crafting is True
     ):
         return "crafting"
     elif (
-        test_node.score
-        < (COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity)
-        and n is True
+        test_node.score < threshold
+        and is_tool_path_available is True
     ):
         if test_node.need_tool_crafting is True:
             test_node.response = "The problem is too complex to craft a new tool, try reason step by step or divide complexity."
@@ -340,7 +336,7 @@ def test_result(messages: MessagesState):
     elif (
         test_node.score
         < (COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity)
-        and n is False
+        and is_tool_path_available is False
         and runtime_graph.exist_reasoning_node_available()
     ):
         return "reasoning_mode"
