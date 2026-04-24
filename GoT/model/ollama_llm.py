@@ -20,6 +20,7 @@ from GoT.tools.math_tool import (
 )
 
 from GoT.tools.craft_tool import craft_tool, install_dependency
+from GoT.tools.web_tool import search_arxiv, search_wikipedia
 
 load_dotenv()
 
@@ -71,7 +72,7 @@ class LLM:
             self.system_prompt = SystemMessage(SYSTEM_PROMPT_GENERAL)
 
     def get_tools(self):
-        initial_tools = [summing, minus, square_root, multiply, divide]
+        initial_tools = [summing, minus, square_root, multiply, divide, search_wikipedia, search_arxiv]
         crafted_tools = self.get_crafted_tools()
         return initial_tools + crafted_tools
 
