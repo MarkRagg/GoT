@@ -19,6 +19,8 @@ dotenv = "^0.9.9"
 mlflow = "^3.9.0"
 lm-eval = {extras = ["math"], version = "^0.4.11"}
 boto3 = "^1.42.51"
+wikipedia = "^1.4.0"
+arxiv = "^3.0.0"
 
 [tool.poetry.group.dev.dependencies]
 coverage = "^7.4.0"
