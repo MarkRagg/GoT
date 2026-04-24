@@ -39,7 +39,7 @@ def defining_and_parse_args():
             "intermediate_algebra",
             "number_theory",
             "precalculus",
-            "statistics",
+            "prealgebra"
         ],
         help="The type of math problems to run, only for hendrycks_math.",
     )
