@@ -18,6 +18,7 @@ from GoT.utils.utils import (
 
 TOKEN = os.getenv("HF_TOKEN")
 
+
 class ResultEval:
     def __init__(
         self,
@@ -207,6 +208,7 @@ def hendrycks_math_eval(responses: list[ResultEval]):
     print(f"Total: {len(responses)}")
     print(f"Correct: {correct}")
 
+
 def benchmark_run(
     questions: list[ResultEval], max_run: int, test: bool
 ) -> list[ResultEval]:
@@ -261,11 +263,11 @@ def gaia_format(dataset: Dataset) -> list[ResultEval]:
         attachment = sample.get("file_name", None)
         if attachment:
             abs_path = hf_hub_download(
-                    repo_id="gaia-benchmark/GAIA",
-                    filename=f"2023/validation/{attachment}",
-                    repo_type="dataset",
-                    token=TOKEN
-                )
+                repo_id="gaia-benchmark/GAIA",
+                filename=f"2023/validation/{attachment}",
+                repo_type="dataset",
+                token=TOKEN,
+            )
             print(abs_path)
             question += f"\nAttachment file path: {abs_path}"
         correct_answer = sample["Final answer"]
@@ -283,6 +285,7 @@ def gaia_format(dataset: Dataset) -> list[ResultEval]:
 
     return questions
 
+
 def gaia_eval(responses: list[ResultEval]):
     correct = 0
 
@@ -299,6 +302,7 @@ def gaia_eval(responses: list[ResultEval]):
     print(f"Accuracy: {accuracy:.2f}%")
     print(f"Total: {len(responses)}")
     print(f"Correct: {correct}")
+
 
 def use_gpqa(max_run: int, test: bool, model_name: str):
     ds = load_dataset("Idavidrein/gpqa", "gpqa_diamond", split="train")
@@ -322,6 +326,7 @@ def use_hendrycks_math(max_run: int, test: bool, model_name: str, type: str):
     responses = benchmark_run(questions, max_run=max_run, test=test)
     hendrycks_math_eval(responses)
     save_eval_results(responses, model_name=model_name)
+
 
 def use_gaia(max_run: int, test: bool, model_name: str):
     ds = load_dataset("gaia-benchmark/GAIA", "2023_level1", split="validation")
