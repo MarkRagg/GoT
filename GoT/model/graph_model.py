@@ -103,18 +103,80 @@ crafter_agent = LLM().create_custom_agent(
         '
             return a * b
 
+        
+        Bad example (hardcoded/placeholder result):
+        def search_papers(query: str) -> str:
+            return "Results about " + query  # WRONG: never return hardcoded strings
+
+        Good example (real API call):
+        def search_papers(query: str) -> str:
+            '
+            Arguments:
+            query: the search query string
+            Returns:
+            A string with real results fetched from the API
+            '
+            import arxiv
+            client = arxiv.Client()
+            search = arxiv.Search(query=query, max_results=3)
+            results = [p.title + ": " + p.summary[:200] for p in client.results(search)]
+            return "\\n".join(results)    
+
+        Bad example: Too specific
+        def get_oldest_blu_ray_title(spreadsheet_path: str) -> str:
+            "
+            Analyzes a spreadsheet to find the oldest Blu-Ray title.
+
+            Arguments:
+            spreadsheet_path: The file path to the spreadsheet (e.g., 'C:/Users/user/data.xlsx').
+
+            Returns:
+            The title of the oldest Blu-Ray as it appears in the spreadsheet.
+            "
+            import pandas as pd
+
+            df = pd.read_excel(spreadsheet_path)
+
+            # Assuming 'Format' column for media type and 'Recording Date' for date
+            blu_rays = df[df['Format'] == 'Blu-Ray']
+
+            if blu_rays.empty:
+                return "No Blu-Ray titles found."
+
+            # Ensure 'Recording Date' is in datetime format for proper comparison
+            blu_rays['Recording Date'] = pd.to_datetime(blu_rays['Recording Date'])
+
+            oldest_blu_ray = blu_rays.sort_values(by='Recording Date', ascending=True).iloc[0]
+
+            return oldest_blu_ray['Title']
+
+        Good example
+        def open_excel_files(excel_path: str)
+            Analyzes a spreadsheet.
+
+            Arguments:
+            spreadsheet_path: The file path to the spreadsheet (e.g., 'C:/Users/user/data.xlsx').
+
+            Returns:
+            The excel file in string
+            "
+            import pandas as pd
+
+            df = pd.read_excel(spreadsheet_path)
+            return df.to_string()
+
         Rules:
         - Prefer generic names and parameters, never craft specific functions.
         - If the function contains specific numbers or values, it is wrong.
-        - Craft only one function, it must contains always the docs.
+        - Never return hardcoded or placeholder strings, the function must fetch real data.
+        - Craft a maximum of 3 tools, it must contains always the docs. If the number of tool crafted exceed, you fail.
         - Never craft tool that raise exceptions.
-        - Respond ONLY using the tool available.
         - No natural language.
-        - No comments in the python interpreter.
+        - No more than 1 line comments in the python codes.
         """
     ),
     response_format=Response,
-    type="remote_response_format",
+    type="remote_crafter",
 )
 
 reasoning_agent = LLM().create_custom_agent(
@@ -280,16 +342,19 @@ def crafting(messages: MessagesState):
         HumanMessage(content="Original task:\n" + parse_response(runtime_graph.goal)),
         AIMessage(content=ai_feedback),
         SystemMessage(
-            content="Craft a tool to solve this problem using craft_tool. It must be a function"
+            content="Use the context given to craft a tool to solve this problem using craft_tool. It must be a function"
         ),
     ]
-    craft_res = crafter_agent.invoke(
-        {"messages": crafting_messages}, config={"recursion_limit": MAX_INTERACTIONS}
-    )
-    runtime_graph.temp_response.response = parse_response_for_tool_node(
-        craft_res
-    ).response
-    parsed_res = f"Response: {parse_response_for_tool_node(craft_res).response}\nExplanation: {parse_response_for_tool_node(craft_res).explanation}"
+    try:    
+        craft_res = crafter_agent.invoke(
+            {"messages": crafting_messages}, config={"recursion_limit": MAX_INTERACTIONS}
+        )
+        parsed_res = parse_response(craft_res)
+    except Exception:   
+        parsed_res = ""
+    # runtime_graph.temp_response.response = parse_response_for_tool_node(
+    #     craft_res
+    # ).response
     runtime_graph.resolve_node(crafting_node, parsed_res)
     runtime_graph.temp_node = runtime_graph.call_tool_node()
     runtime_graph.add_edge(crafting_node, runtime_graph.temp_node)
