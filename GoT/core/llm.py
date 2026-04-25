@@ -11,7 +11,7 @@ from langchain_core.messages import SystemMessage
 from langchain.agents import create_agent
 import mlflow
 
-from GoT.tools.math_tool import (
+from GoT.agent_tools.math_tool import (
     multiply,
     summing,
     minus,
@@ -19,7 +19,7 @@ from GoT.tools.math_tool import (
     divide,
 )
 
-from GoT.tools.craft_tool import craft_tool, install_dependency
+from GoT.agent_tools.craft_tool import craft_tool, install_dependency
 
 load_dotenv()
 
@@ -56,6 +56,11 @@ class LLM:
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 temperature=1.0,  # Gemini 3.0+ defaults to 1.0
             )
+            self.remoteLLMCrafter = ChatGoogleGenerativeAI(
+                model="gemini-3-flash-preview",
+                api_key=os.environ.get("GEMINI_API_KEY"),
+                temperature=1.0,  # Gemini 3.0+ defaults to 1.0
+            )
             self.remoteLLMScoreFormat = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
                 api_key=os.environ.get("GEMINI_API_KEY"),
@@ -66,6 +71,7 @@ class LLM:
                 "remote_standard": self.remoteLLMStandard,
                 "remote_response_format": self.remoteLLMResponseFormat,
                 "remote_score_format": self.remoteLLMScoreFormat,
+                "remote_crafter": self.remoteLLMCrafter,
             }
 
             self.system_prompt = SystemMessage(SYSTEM_PROMPT_GENERAL)
@@ -79,7 +85,7 @@ class LLM:
         return [craft_tool, install_dependency]
 
     def get_crafted_tools(self) -> list[BaseTool]:
-        module_name = "GoT.tools.ai_tool"
+        module_name = "GoT.agent_tools.ai_tool"
         if module_name in sys.modules:
             module = importlib.reload(sys.modules[module_name])
         else:

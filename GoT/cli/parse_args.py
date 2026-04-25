@@ -1,7 +1,12 @@
 import argparse
 import sys
 
-from GoT.model.utils.hf_formatter import use_gpqa, use_gsm8k, use_hendrycks_math
+from GoT.experiments.hf_formatter import (
+    use_gaia,
+    use_gpqa,
+    use_gsm8k,
+    use_hendrycks_math,
+)
 
 
 def defining_and_parse_args():
@@ -12,7 +17,7 @@ def defining_and_parse_args():
         "--benchmark",
         required=True,
         type=str,
-        choices=["gsm8k", "gpqa", "hendrycks_math"],
+        choices=["gsm8k", "gpqa", "hendrycks_math", "gaia"],
         help="The benchmark to run the model on.",
     )
     parser.add_argument(
@@ -39,7 +44,7 @@ def defining_and_parse_args():
             "intermediate_algebra",
             "number_theory",
             "precalculus",
-            "statistics",
+            "prealgebra",
         ],
         help="The type of math problems to run, only for hendrycks_math.",
     )
@@ -62,3 +67,5 @@ def call_benchmark(args):
         use_gpqa(max_run=max_run, test=test, model_name=mode)
     elif args.benchmark == "hendrycks_math":
         use_hendrycks_math(max_run=max_run, test=test, model_name=mode, type=args.type)
+    elif args.benchmark == "gaia":
+        use_gaia(max_run=max_run, test=test, model_name=mode)

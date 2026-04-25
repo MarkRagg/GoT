@@ -1,10 +1,11 @@
 import json
 import re
 
+import mlflow
 import numpy as np
 from sympy import simplify, sympify
 
-from GoT.model.runtime_graph import Response, Score
+from GoT.core.runtime_graph import Response, Score
 from langgraph.graph import MessagesState
 from langchain_core.messages import AIMessage
 
@@ -227,3 +228,8 @@ def print_benchmark_result_loglikehood(
     print(f"Total: {n_total}")
     print(f"Correct: {n_correct}")
     print(f"Wrong: {n_wrong}")
+
+
+def download_mlflow_traces(n_max: int):
+    traces = mlflow.search_traces(max_results=n_max, order_by=["timestamp DESC"])
+    traces.to_csv("traces.csv", index=False)
