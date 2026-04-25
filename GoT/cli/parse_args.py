@@ -1,7 +1,7 @@
 import argparse
 import sys
 
-from GoT.model.utils.hf_formatter import use_gaia, use_gpqa, use_gsm8k, use_hendrycks_math
+from GoT.experiments.hf_formatter import use_gaia, use_gpqa, use_gsm8k, use_hendrycks_math
 
 
 def defining_and_parse_args():

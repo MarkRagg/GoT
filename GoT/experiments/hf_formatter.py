@@ -7,9 +7,9 @@ from huggingface_hub import hf_hub_download
 
 from langchain.messages import HumanMessage
 
-from GoT.model.graph_model import call_graph
-from GoT.model.ollama_llm import LLM
-from GoT.model.utils.utils import (
+from GoT.core.graph_model import call_graph
+from GoT.core.llm import LLM
+from GoT.utils.utils import (
     extract_output,
     normalize_list,
     normalize_number,

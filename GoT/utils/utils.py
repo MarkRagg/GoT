@@ -5,7 +5,7 @@ import mlflow
 import numpy as np
 from sympy import simplify, sympify
 
-from GoT.model.runtime_graph import Response, Score
+from GoT.core.runtime_graph import Response, Score
 from langgraph.graph import MessagesState
 from langchain_core.messages import AIMessage
 

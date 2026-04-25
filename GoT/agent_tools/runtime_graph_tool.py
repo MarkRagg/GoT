@@ -1,9 +1,9 @@
 from langchain.messages import HumanMessage, SystemMessage
 from langchain.tools import tool
 
-from GoT.model.ollama_llm import LLM
-from GoT.model.runtime_graph import ReasoningNode, RuntimeGraph
-from GoT.model.utils.utils import parse_response
+from GoT.core.llm import LLM
+from GoT.core.runtime_graph import ReasoningNode, RuntimeGraph
+from GoT.utils.utils import parse_response
 
 MAX_INTERACTIONS = 10
 
