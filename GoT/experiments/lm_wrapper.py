@@ -1,10 +1,10 @@
-from GoT.model.graph_model import call_graph
+from GoT.core.graph_model import call_graph
 from lm_eval.api.registry import register_model
 from lm_eval.api.model import LM
 
-from GoT.model.ollama_llm import LLM
+from GoT.core.llm import LLM
 from langchain_core.messages import HumanMessage
-from GoT.model.utils.utils import extract_output, normalize_number, parse_response
+from GoT.utils.utils import extract_output, normalize_number, parse_response
 
 
 class LangGraphLM:
