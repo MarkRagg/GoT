@@ -57,6 +57,11 @@ class LLM:
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 temperature=1.0,  # Gemini 3.0+ defaults to 1.0
             )
+            self.remoteLLMCrafter = ChatGoogleGenerativeAI(
+                model="gemini-3-flash-preview",
+                api_key=os.environ.get("GEMINI_API_KEY"),
+                temperature=1.0,  # Gemini 3.0+ defaults to 1.0
+            )
             self.remoteLLMScoreFormat = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
                 api_key=os.environ.get("GEMINI_API_KEY"),
@@ -67,12 +72,13 @@ class LLM:
                 "remote_standard": self.remoteLLMStandard,
                 "remote_response_format": self.remoteLLMResponseFormat,
                 "remote_score_format": self.remoteLLMScoreFormat,
+                "remote_crafter": self.remoteLLMCrafter
             }
 
             self.system_prompt = SystemMessage(SYSTEM_PROMPT_GENERAL)
 
     def get_tools(self):
-        initial_tools = [summing, minus, square_root, multiply, divide, search_wikipedia, search_arxiv]
+        initial_tools = [summing, minus, square_root, multiply, divide]
         crafted_tools = self.get_crafted_tools()
         return initial_tools + crafted_tools
 
