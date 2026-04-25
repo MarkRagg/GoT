@@ -2,8 +2,8 @@ from venv import logger
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
 from langgraph.graph import StateGraph, MessagesState, START, END
 
-from GoT.model.ollama_llm import LLM
-from GoT.model.runtime_graph import (
+from GoT.core.llm import LLM
+from GoT.core.runtime_graph import (
     BacktrackNode,
     CompletitionNode,
     CraftingNode,
@@ -15,13 +15,13 @@ from GoT.model.runtime_graph import (
     TestNode,
     ToolNode,
 )
-from GoT.model.utils.utils import (
+from GoT.utils.utils import (
     extract_tool_used,
     parse_response,
     parse_response_for_tool_node,
     parse_score,
 )
-from GoT.tools.runtime_graph_tool import divide_thought
+from GoT.agent_tools.runtime_graph_tool import divide_thought
 
 SCORE_THRESHOLD = 5
 COMPLEXITY_COEFFICIENT = 0.5
