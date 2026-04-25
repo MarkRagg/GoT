@@ -51,5 +51,5 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [[tool.mypy.overrides]]
-module = ["lm_eval.*", "datasets.*", "sympy.*"]
+module = ["lm_eval.*", "datasets.*", "sympy.*", "arxiv.*", "wikipedia.*"]
 follow_untyped_imports = true

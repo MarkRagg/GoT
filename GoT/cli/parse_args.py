@@ -1,7 +1,12 @@
 import argparse
 import sys
 
-from GoT.experiments.hf_formatter import use_gaia, use_gpqa, use_gsm8k, use_hendrycks_math
+from GoT.experiments.hf_formatter import (
+    use_gaia,
+    use_gpqa,
+    use_gsm8k,
+    use_hendrycks_math,
+)
 
 
 def defining_and_parse_args():
@@ -39,7 +44,7 @@ def defining_and_parse_args():
             "intermediate_algebra",
             "number_theory",
             "precalculus",
-            "prealgebra"
+            "prealgebra",
         ],
         help="The type of math problems to run, only for hendrycks_math.",
     )

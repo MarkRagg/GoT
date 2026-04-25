@@ -283,7 +283,9 @@ def tool_call(messages: MessagesState):
         )
     tool_used = extract_tool_used(res)
     runtime_graph.temp_response.response = parse_response_for_tool_node(res).response
-    runtime_graph.temp_response.explanation = parse_response_for_tool_node(res).explanation
+    runtime_graph.temp_response.explanation = parse_response_for_tool_node(
+        res
+    ).explanation
     parsed_res = f"Response: {parse_response_for_tool_node(res).response}\nExplanation: {parse_response_for_tool_node(res).explanation}"
     runtime_graph.resolve_node(call_node, parsed_res)
 
@@ -345,12 +347,13 @@ def crafting(messages: MessagesState):
             content="Use the context given to craft a tool to solve this problem using craft_tool. It must be a function"
         ),
     ]
-    try:    
+    try:
         craft_res = crafter_agent.invoke(
-            {"messages": crafting_messages}, config={"recursion_limit": MAX_INTERACTIONS}
+            {"messages": crafting_messages},
+            config={"recursion_limit": MAX_INTERACTIONS},
         )
         parsed_res = parse_response(craft_res)
-    except Exception:   
+    except Exception:
         parsed_res = ""
     # runtime_graph.temp_response.response = parse_response_for_tool_node(
     #     craft_res
@@ -380,7 +383,9 @@ def test_result(messages: MessagesState):
     test_node = runtime_graph.temp_node
     if not isinstance(test_node, TestNode):
         raise TypeError("Expected TestNode for scoring")
-    threshold = COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity
+    threshold = (
+        COMPLEXITY_THRESHOLD - COMPLEXITY_COEFFICIENT * test_node.problem_complexity
+    )
     if test_node.score >= threshold:
         runtime_graph.add_edge(test_node, runtime_graph.temp_response)
         runtime_graph.temp_response.resolved = True
@@ -391,10 +396,7 @@ def test_result(messages: MessagesState):
         and test_node.need_tool_crafting is True
     ):
         return "crafting"
-    elif (
-        test_node.score < threshold
-        and is_tool_path_available is True
-    ):
+    elif test_node.score < threshold and is_tool_path_available is True:
         if test_node.need_tool_crafting is True:
             test_node.response = "The problem is too complex to craft a new tool, try reason step by step or divide complexity."
         return "backtrack"
