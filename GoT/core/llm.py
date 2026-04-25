@@ -71,7 +71,7 @@ class LLM:
                 "remote_standard": self.remoteLLMStandard,
                 "remote_response_format": self.remoteLLMResponseFormat,
                 "remote_score_format": self.remoteLLMScoreFormat,
-                "remote_crafter": self.remoteLLMCrafter
+                "remote_crafter": self.remoteLLMCrafter,
             }
 
             self.system_prompt = SystemMessage(SYSTEM_PROMPT_GENERAL)

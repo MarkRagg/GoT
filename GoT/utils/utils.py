@@ -229,6 +229,7 @@ def print_benchmark_result_loglikehood(
     print(f"Correct: {n_correct}")
     print(f"Wrong: {n_wrong}")
 
+
 def download_mlflow_traces(n_max: int):
     traces = mlflow.search_traces(max_results=n_max, order_by=["timestamp DESC"])
     traces.to_csv("traces.csv", index=False)
