@@ -83,8 +83,14 @@ def parse_response_for_tool_node(response: MessagesState) -> Response:
     if isinstance(structured_response, Response):
         return structured_response
     elif score_res is not None:
-        data = json.loads(score_res)
-        return Response.model_validate(data)
+        try:
+            data = json.loads(score_res)
+            return Response.model_validate(data)
+        except json.JSONDecodeError:
+            return Response(
+                response=score_res,
+                explanation="",
+            )
     else:
         return Response(
             response="Failed to parse response",
@@ -179,6 +185,38 @@ def symbolic_equal(a, b):
         return simplify(sympify(a) - sympify(b)) == 0
     except Exception:
         return False
+
+def extract_answer_from_response(response: str) -> str:
+    """
+    Extract the answer from the LLM response. 
+
+    :param response: The LLM response
+    :type response: str
+    :return: The extracted answer
+    :rtype: str
+    """
+    # Try to extract using \\boxed{answer}
+    boxed_match = re.search(r"\\boxed\{([^}]*)\}", response)
+    if boxed_match:
+        return boxed_match.group(1).strip()
+    
+    # Try to extract using boxed{answer}
+    boxed_match_alt = re.search(r"oxed\{([^}]*)\}", response)
+    if boxed_match_alt:
+        return boxed_match_alt.group(1).strip()
+
+    # Try to extract using Answer: answer
+    answer_match = re.search(r"Answer:\s*(.*)", response)
+    if answer_match:
+        return answer_match.group(1).strip()
+    
+    try:
+        if float(response.strip()):
+            return response.strip()
+    except ValueError:
+        return "N/A"
+    # If no pattern matched, return the original response
+    return "N/A"
 
 
 def print_benchmark_result(results: dict, task_name: str, filter: str) -> None:

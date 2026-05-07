@@ -10,6 +10,7 @@ from langchain.messages import HumanMessage
 from GoT.core.graph_model import call_graph
 from GoT.core.llm import LLM
 from GoT.utils.utils import (
+    extract_answer_from_response,
     extract_output,
     normalize_list,
     normalize_number,
@@ -190,8 +191,7 @@ def hendrycks_math_eval(responses: list[ResultEval]):
     correct = 0
 
     for res in responses:
-        opt_res = re.search(r"\\boxed\{(.*)\}", res.response)
-        norm_res = opt_res.group(1) if opt_res else "N/A"
+        norm_res = extract_answer_from_response(res.response)
         norm_correct = normalize_number(res.correct_answer)
         res.filtered_answer = norm_res
 
