@@ -168,6 +168,7 @@ crafter_agent = LLM().create_custom_agent(
         Rules:
         - Prefer generic names and parameters, never craft specific functions.
         - If the function contains specific numbers or values, it is wrong.
+        - The Tool must follow the Json schema protocol, Tuple is banned.
         - Never return hardcoded or placeholder strings, the function must fetch real data.
         - Craft a maximum of 3 tools, it must contains always the docs. If the number of tool crafted exceed, you fail.
         - Never craft tool that raise exceptions.
@@ -205,7 +206,6 @@ def goal(prompt: MessagesState):
         call_node = ToolNode(
             "Please, resolve the problem with the tools given, you MUST follow the previous reasoning.",
             "",
-            tool_name="",
         )
         reasoning_node = ReasoningNode("")
         runtime_graph.add_node(reasoning_node)
@@ -454,7 +454,6 @@ def backtrack(messages: MessagesState):
     runtime_graph.add_edge(
         backtrack_node, runtime_graph.temp_node
     )  # tool call node that we want to resolve
-    # messages = runtime_graph.append_prompt_to_messages_state(runtime_graph.temp_node)
     messages.get("messages", []).append(AIMessage(backtrack_node.feedback))
     return messages
 

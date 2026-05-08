@@ -1,17 +1,16 @@
 from typing import Dict, List
 from langgraph.graph import MessagesState
-from langchain_core.messages import AnyMessage, HumanMessage
 from pydantic import BaseModel, Field
 
 
 class RuntimeNode:
-    _id_counter = 0  # Contatore globale per ID unici
+    _id_counter = 0  # global ID counter
 
     def __init__(
         self,
         resolved: bool = False,
     ):
-        self.id = RuntimeNode._id_counter  # ID unico per ogni nodo
+        self.id = RuntimeNode._id_counter
         RuntimeNode._id_counter += 1
         self.resolved = resolved
 
@@ -52,13 +51,11 @@ class ToolNode(RuntimeNode):
         self,
         prompt: str,
         response: str,
-        tool_name: str,
         resolved: bool = False,
     ):
         super().__init__(resolved)
         self.prompt = prompt
         self.response = response
-        self.tool_name = tool_name
 
 
 class GoalNode(RuntimeNode):
@@ -170,7 +167,6 @@ class RuntimeGraph:
     def __init__(self):
         self.goal: MessagesState = MessagesState(messages=[])
         self.nodes: Dict[RuntimeNode, List[RuntimeNode]] = {}
-        self.tools_available: Dict[RuntimeNode, str] = {}
         self.temp_node: RuntimeNode = RuntimeNode()
         self.temp_response: ResponseNode = ResponseNode(response="", resolved=False)
 
@@ -180,9 +176,6 @@ class RuntimeGraph:
     def add_edge(self, n1: RuntimeNode, n2: RuntimeNode):
         self.nodes.setdefault(n1, []).append(n2)
         self.nodes.setdefault(n2, [])
-
-    def add_tool_link(self, call_node: RuntimeNode, tool_name: str):
-        self.tools_available.setdefault(call_node, tool_name)
 
     def resolve_node(self, node: RuntimeNode, response: str) -> None:
         if isinstance(node, (ToolNode, TestNode, CompletitionNode)):
@@ -208,31 +201,16 @@ class RuntimeGraph:
         call_nodes = [n for n in nodes if (isinstance(n, ToolNode) and not n.resolved)]
         return True if call_nodes else False
 
-    def get_resolved_tools(self):
-        resolved_nodes = [t for t in self.tools_available.keys() if t.resolved is True]
-        return [self.tools_available[n] for n in resolved_nodes]
-
-    def is_craftin_node_resolved(self) -> bool:
+    def is_crafting_node_resolved(self) -> bool:
         nodes = list(self.nodes.keys())
         crafting_nodes = [
             n for n in nodes if (isinstance(n, CraftingNode) and n.resolved)
         ]
         return True if crafting_nodes else False
 
-    def append_prompt_to_messages_state(
-        self, node: TestNode | ToolNode | CompletitionNode | GoalNode
-    ) -> MessagesState:
-        messages: list[AnyMessage] = []
-
-        if node.prompt:
-            messages.append(HumanMessage(content=node.prompt))
-
-        return MessagesState(messages=messages)
-
     def clear(self):
         RuntimeNode._id_counter = 0
         self.nodes = {}
-        self.tools_available = {}
         self.temp_node = RuntimeNode()
         self.temp_response = ResponseNode(response="", resolved=False)
 
