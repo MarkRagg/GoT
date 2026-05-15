@@ -41,7 +41,7 @@ def defining_and_parse_args():
         help="The maximum number of runs for the benchmark.",
     )
     parser.add_argument(
-        "--type",
+        "--category",
         type=str,
         default="algebra",
         choices=[
@@ -73,7 +73,7 @@ def call_benchmark(args):
     elif args.benchmark == "gpqa":
         use_gpqa(max_run=max_run, test=test, model_name=mode)
     elif args.benchmark == "hendrycks_math":
-        use_hendrycks_math(max_run=max_run, test=test, model_name=mode, type=args.type)
+        use_hendrycks_math(max_run=max_run, test=test, model_name=mode, type=args.category)
     elif args.benchmark == "gaia":
         use_gaia(max_run=max_run, test=test, model_name=mode)
     elif args.benchmark == "custom" and args.prompt != "":
