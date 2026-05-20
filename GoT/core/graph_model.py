@@ -389,6 +389,12 @@ def test_result(messages: MessagesState):
         runtime_graph.add_edge(test_node, runtime_graph.temp_response)
         runtime_graph.temp_response.resolved = True
         return END
+    elif (
+        test_node.score < threshold
+        and is_tool_path_available is True
+        and test_node.need_tool_crafting is True
+    ):
+        return "crafting"
     elif test_node.score < threshold and is_tool_path_available is True:
         if test_node.need_tool_crafting is True:
             test_node.response = "The problem is too complex to craft a new tool, try reason step by step or divide complexity."
