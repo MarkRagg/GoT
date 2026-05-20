@@ -116,12 +116,12 @@ class CraftingNode(RuntimeNode):
     def __init__(
         self,
         response: str,
-        tool_crafted: str = "",
+        tools_crafted: list[str] = [],
         resolved: bool = False,
     ):
         super().__init__(resolved)
         self.response = response
-        self.tool_crafted = tool_crafted
+        self.tools_crafted = tools_crafted
 
 
 class Score(BaseModel):
