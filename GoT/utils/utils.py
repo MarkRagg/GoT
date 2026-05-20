@@ -17,7 +17,10 @@ def parse_response(res) -> str:
     :param res: the MessagesState
     :return: The response in string
     """
-    return res["messages"][-1].content
+    response = res["messages"][-1].text
+    if response is None or response == "":
+        response = res["messages"][-1].content
+    return response
 
 
 def parse_tool_list(response: str) -> list[str]:
@@ -114,6 +117,45 @@ def extract_tool_used(response: MessagesState) -> list[str]:
                 tools_used.append(tool_call["name"])
     return tools_used
 
+def extract_function_signature(tool_crafted: dict) -> str:
+    """
+    Extract name and arguments from function string.
+    """
+    func_str = tool_crafted.get("tool_function", "")
+    match = re.search(r"def (\w+)\(([^)]*)\)", func_str)
+    if not match:
+        return ""
+    
+    func_name = match.group(1)
+    args = match.group(2)
+    
+    clean_args = ", ".join(
+        arg.split("=")[0].strip()
+        for arg in args.split(",")
+        if arg.strip() and arg.strip() != "self"
+        )
+    
+    return f"{func_name}({clean_args})"
+
+def extract_tools_crafted(response: MessagesState) -> list[str]:
+    """
+    Extract the tools that LLM has crafted.
+
+    :param response: The LLM response
+    :type response: MessagesState
+    :return: The list of tools crafted
+    :rtype: list[str]
+    """
+    tools_crafted = []
+    for msg in response.get("messages", []):
+        if isinstance(msg, AIMessage):
+            for tool_call in msg.tool_calls:
+                tool_crafted = tool_call["args"]
+                signature = extract_function_signature(tool_crafted)
+                if signature != '':
+                    tools_crafted.append(signature)
+    return tools_crafted
+
 
 def remove_tools_from_list(tool_list, tools_to_remove):
     """
@@ -187,36 +229,27 @@ def symbolic_equal(a, b):
         return False
 
 def extract_answer_from_response(response: str) -> str:
-    """
-    Extract the answer from the LLM response. 
-
-    :param response: The LLM response
-    :type response: str
-    :return: The extracted answer
-    :rtype: str
-    """
-    # Try to extract using \\boxed{answer}
-    boxed_match = re.search(r"\\boxed\{([^}]*)\}", response)
+    boxed_match = re.search(r"\\boxed\{(.*)\}", response)
     if boxed_match:
         return boxed_match.group(1).strip()
     
-    # Try to extract using boxed{answer}
-    boxed_match_alt = re.search(r"oxed\{([^}]*)\}", response)
+    boxed_match_alt = re.search(r"boxed\{(.*)\}", response)
     if boxed_match_alt:
         return boxed_match_alt.group(1).strip()
 
-    # Try to extract using Answer: answer
-    answer_match = re.search(r"Answer:\s*(.*)", response)
+    answer_match = re.search(r"Answer:\s*(.*)", response, re.IGNORECASE)
     if answer_match:
         return answer_match.group(1).strip()
     
+    clean_response = response.strip()
+    if not clean_response:
+        return "N/A"
+        
     try:
-        if float(response.strip()):
-            return response.strip()
+        float(clean_response)
+        return clean_response
     except ValueError:
         return "N/A"
-    # If no pattern matched, return the original response
-    return "N/A"
 
 
 def print_benchmark_result(results: dict, task_name: str, filter: str) -> None:

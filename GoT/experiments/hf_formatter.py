@@ -14,6 +14,7 @@ from GoT.utils.utils import (
     extract_output,
     normalize_list,
     normalize_number,
+    parse_response,
     symbolic_equal,
 )
 
@@ -222,7 +223,7 @@ def benchmark_run(
         correct_answer = q.correct_answer
         try:
             if test:
-                response = extract_output(
+                response = parse_response(
                     agent.invoke(
                         {"messages": [HumanMessage(content=prompt)]},
                         config={"recursion_limit": 20},
