@@ -336,7 +336,7 @@ def response_evaluation(messages: MessagesState):
 
 
 def crafting(messages: MessagesState):
-    crafting_node = CraftingNode(response="", tools_crafted="", resolved=False)
+    crafting_node = CraftingNode(response="", tools_crafted=[], resolved=False)
     runtime_graph.add_node(crafting_node)
     runtime_graph.add_edge(runtime_graph.temp_node, crafting_node)
     runtime_graph.temp_node = crafting_node
