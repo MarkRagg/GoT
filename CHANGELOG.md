@@ -1,3 +1,31 @@
+## [1.1.0](https://github.com/MarkRagg/GoT/compare/1.0.0...1.1.0) (2026-05-22)
+
+### Features
+
+* add wikipedia and arxiv tools ([78e5fa6](https://github.com/MarkRagg/GoT/commit/78e5fa671b073efb81a70233765015a5d0604a1f))
+* gaia benchmark added ([f32ece3](https://github.com/MarkRagg/GoT/commit/f32ece394bb753163e2d808f96c4677aceb3487a))
+
+### Bug Fixes
+
+* fix names in type arg ([648e6a6](https://github.com/MarkRagg/GoT/commit/648e6a600b1a348e588d206a11d6840fa3eed154))
+
+### General maintenance
+
+* add explanation of tool needed ([95b1ce5](https://github.com/MarkRagg/GoT/commit/95b1ce5de9ac2cd76d9505e5a5234c0b4eb615d7))
+* add method to download mlflow traces ([098c5de](https://github.com/MarkRagg/GoT/commit/098c5de807f3054ab054ec777660ee60ee926936))
+* add specific crafter LLM and improve prompt ([de32311](https://github.com/MarkRagg/GoT/commit/de32311bcd83e3270a181ef080f77fae40fadd40))
+* change var name and simplify codes ([5ebea67](https://github.com/MarkRagg/GoT/commit/5ebea673da9ebc50d75c75225b03432c7d4c6303))
+* create a single benchmark_run for all datasets ([051f64d](https://github.com/MarkRagg/GoT/commit/051f64d6e5980b770806fbbd19d0f3979c096e04))
+* improve prompt ([02cc11c](https://github.com/MarkRagg/GoT/commit/02cc11cd8e4d76737d2e04ceec9f332df6d87402))
+* remove comments ([4ef6c9d](https://github.com/MarkRagg/GoT/commit/4ef6c9d33e375d4820ff0c0fef0487ce3d24414d))
+* remove craft tools in hf formatter ([9c8f81e](https://github.com/MarkRagg/GoT/commit/9c8f81e00fdc1beb2090055b390c9d8749e7aca0))
+* simplify codes ([e4da8c0](https://github.com/MarkRagg/GoT/commit/e4da8c090fff9bf403f550456f0b069f0c7afcad))
+
+### Style improvements
+
+* change system folder architecture ([399830c](https://github.com/MarkRagg/GoT/commit/399830cdf5bd35ac175d2a2d6ff9a06d67a89b90))
+* ruff format + ignores arxiv, wikipedia stubs ([c432dda](https://github.com/MarkRagg/GoT/commit/c432ddadfa7b72722cb81621912bdb89f6439176))
+
 ## 1.0.0 (2026-04-14)
 
 ### Features
