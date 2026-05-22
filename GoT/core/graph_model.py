@@ -17,6 +17,7 @@ from GoT.core.runtime_graph import (
 )
 from GoT.utils.utils import (
     extract_tool_used,
+    extract_tools_crafted,
     parse_response,
     parse_response_for_tool_node,
     parse_score,
@@ -54,16 +55,16 @@ judge_agent = LLM().create_custom_agent(
         Your duty is to score, from 0 to 5, the response that user gives and assign a score.
 
         Rules:
+        - If a response suggest the need of crafting a tool, score it with 1 or less and specify clearly the need of a new tool to solve the problem.
         - You MUST respond ONLY using the Score function.
         - You must consider if the format of the answer follow the instruction
         - You cannot give the full solution, only hints.
-        - If a response suggest the need of crafting a tool, score it with 1 or less and specify clearly the need of a new tool to solve the problem.
         - Do not write natural language outside the function.
         - Always consider creating a tool if it makes the response correct or reusable.
 
         Score meanings:
         0: Impossible to understand / completely wrong
-        1: Nearly completely wrong
+        1: Nearly completely wrong / need to craft a tool
         2: Correct language but does not follow instruction
         3: Tries to solve but fails instruction / wrong
         4: Follows instruction but result wrong or incomplete
@@ -168,6 +169,7 @@ crafter_agent = LLM().create_custom_agent(
         Rules:
         - Prefer generic names and parameters, never craft specific functions.
         - If the function contains specific numbers or values, it is wrong.
+        - The Tool must follow the Json schema protocol, Tuple is banned.
         - Never return hardcoded or placeholder strings, the function must fetch real data.
         - Craft a maximum of 3 tools, it must contains always the docs. If the number of tool crafted exceed, you fail.
         - Never craft tool that raise exceptions.
@@ -202,12 +204,11 @@ def goal(prompt: MessagesState):
     runtime_graph.add_node(goal_node)
     runtime_graph.temp_node = goal_node
     for i in range(0, 3):
+        reasoning_node = ReasoningNode("")
         call_node = ToolNode(
             "Please, resolve the problem with the tools given, you MUST follow the previous reasoning.",
             "",
-            tool_name="",
         )
-        reasoning_node = ReasoningNode("")
         runtime_graph.add_node(reasoning_node)
         runtime_graph.add_node(call_node)
         runtime_graph.add_edge(goal_node, reasoning_node)
@@ -242,7 +243,7 @@ def tool_call(messages: MessagesState):
     # It calls the llm and it resolves the call node
     call_node = runtime_graph.temp_node
     tool_agent = LLM().create_custom_agent(
-        LLM().get_tools() + [divide_thought],
+        LLM().get_tools(),
         SystemMessage(
             "You are an assistant specialized in tools. Your goal is to resolve the problem with "
             " the tool that the user indicates to you. You HAVE to use or craft the tool that the assistant indicates to you."
@@ -335,7 +336,7 @@ def response_evaluation(messages: MessagesState):
 
 
 def crafting(messages: MessagesState):
-    crafting_node = CraftingNode(response="", tool_crafted="", resolved=False)
+    crafting_node = CraftingNode(response="", tools_crafted=[], resolved=False)
     runtime_graph.add_node(crafting_node)
     runtime_graph.add_edge(runtime_graph.temp_node, crafting_node)
     runtime_graph.temp_node = crafting_node
@@ -352,12 +353,10 @@ def crafting(messages: MessagesState):
             {"messages": crafting_messages},
             config={"recursion_limit": MAX_INTERACTIONS},
         )
+        crafting_node.tools_crafted = extract_tools_crafted(craft_res)
         parsed_res = parse_response(craft_res)
     except Exception:
         parsed_res = ""
-    # runtime_graph.temp_response.response = parse_response_for_tool_node(
-    #     craft_res
-    # ).response
     runtime_graph.resolve_node(crafting_node, parsed_res)
     runtime_graph.temp_node = runtime_graph.call_tool_node()
     runtime_graph.add_edge(crafting_node, runtime_graph.temp_node)
@@ -454,7 +453,6 @@ def backtrack(messages: MessagesState):
     runtime_graph.add_edge(
         backtrack_node, runtime_graph.temp_node
     )  # tool call node that we want to resolve
-    # messages = runtime_graph.append_prompt_to_messages_state(runtime_graph.temp_node)
     messages.get("messages", []).append(AIMessage(backtrack_node.feedback))
     return messages
 

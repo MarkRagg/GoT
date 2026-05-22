@@ -7,6 +7,7 @@ from GoT.experiments.hf_formatter import (
     use_gsm8k,
     use_hendrycks_math,
 )
+from GoT.experiments.runner_custom import custom_test
 
 
 def defining_and_parse_args():
@@ -17,7 +18,7 @@ def defining_and_parse_args():
         "--benchmark",
         required=True,
         type=str,
-        choices=["gsm8k", "gpqa", "hendrycks_math", "gaia"],
+        choices=["gsm8k", "gpqa", "hendrycks_math", "gaia", "custom"],
         help="The benchmark to run the model on.",
     )
     parser.add_argument(
@@ -28,13 +29,16 @@ def defining_and_parse_args():
         help="Whether to run the standard model or the graph model.",
     )
     parser.add_argument(
+        "--prompt", type=str, default="", help="Insert a prompt during a custom run."
+    )
+    parser.add_argument(
         "--max_run",
         type=int,
         default=1,
         help="The maximum number of runs for the benchmark.",
     )
     parser.add_argument(
-        "--type",
+        "--category",
         type=str,
         default="algebra",
         choices=[
@@ -66,6 +70,10 @@ def call_benchmark(args):
     elif args.benchmark == "gpqa":
         use_gpqa(max_run=max_run, test=test, model_name=mode)
     elif args.benchmark == "hendrycks_math":
-        use_hendrycks_math(max_run=max_run, test=test, model_name=mode, type=args.type)
+        use_hendrycks_math(
+            max_run=max_run, test=test, model_name=mode, type=args.category
+        )
     elif args.benchmark == "gaia":
         use_gaia(max_run=max_run, test=test, model_name=mode)
+    elif args.benchmark == "custom" and args.prompt != "":
+        custom_test(args.prompt, test)
