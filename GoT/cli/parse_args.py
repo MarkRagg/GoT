@@ -29,10 +29,7 @@ def defining_and_parse_args():
         help="Whether to run the standard model or the graph model.",
     )
     parser.add_argument(
-        "--prompt",
-        type=str,
-        default="",
-        help="Insert a prompt during a custom run."
+        "--prompt", type=str, default="", help="Insert a prompt during a custom run."
     )
     parser.add_argument(
         "--max_run",
@@ -73,7 +70,9 @@ def call_benchmark(args):
     elif args.benchmark == "gpqa":
         use_gpqa(max_run=max_run, test=test, model_name=mode)
     elif args.benchmark == "hendrycks_math":
-        use_hendrycks_math(max_run=max_run, test=test, model_name=mode, type=args.category)
+        use_hendrycks_math(
+            max_run=max_run, test=test, model_name=mode, type=args.category
+        )
     elif args.benchmark == "gaia":
         use_gaia(max_run=max_run, test=test, model_name=mode)
     elif args.benchmark == "custom" and args.prompt != "":

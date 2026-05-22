@@ -117,6 +117,7 @@ def extract_tool_used(response: MessagesState) -> list[str]:
                 tools_used.append(tool_call["name"])
     return tools_used
 
+
 def extract_function_signature(tool_crafted: dict) -> str:
     """
     Extract name and arguments from function string.
@@ -125,17 +126,18 @@ def extract_function_signature(tool_crafted: dict) -> str:
     match = re.search(r"def (\w+)\(([^)]*)\)", func_str)
     if not match:
         return ""
-    
+
     func_name = match.group(1)
     args = match.group(2)
-    
+
     clean_args = ", ".join(
         arg.split("=")[0].strip()
         for arg in args.split(",")
         if arg.strip() and arg.strip() != "self"
-        )
-    
+    )
+
     return f"{func_name}({clean_args})"
+
 
 def extract_tools_crafted(response: MessagesState) -> list[str]:
     """
@@ -152,7 +154,7 @@ def extract_tools_crafted(response: MessagesState) -> list[str]:
             for tool_call in msg.tool_calls:
                 tool_crafted = tool_call["args"]
                 signature = extract_function_signature(tool_crafted)
-                if signature != '':
+                if signature != "":
                     tools_crafted.append(signature)
     return tools_crafted
 
@@ -228,11 +230,12 @@ def symbolic_equal(a, b):
     except Exception:
         return False
 
+
 def extract_answer_from_response(response: str) -> str:
     boxed_match = re.search(r"\\boxed\{(.*)\}", response)
     if boxed_match:
         return boxed_match.group(1).strip()
-    
+
     boxed_match_alt = re.search(r"boxed\{(.*)\}", response)
     if boxed_match_alt:
         return boxed_match_alt.group(1).strip()
@@ -240,11 +243,11 @@ def extract_answer_from_response(response: str) -> str:
     answer_match = re.search(r"Answer:\s*(.*)", response, re.IGNORECASE)
     if answer_match:
         return answer_match.group(1).strip()
-    
+
     clean_response = response.strip()
     if not clean_response:
         return "N/A"
-        
+
     try:
         float(clean_response)
         return clean_response
