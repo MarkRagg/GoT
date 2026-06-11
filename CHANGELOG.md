@@ -1,3 +1,58 @@
+## [1.2.0](https://github.com/MarkRagg/GoT/compare/1.1.0...1.2.0) (2026-06-11)
+
+### Features
+
+* add custom runs on cli args ([47ef8b4](https://github.com/MarkRagg/GoT/commit/47ef8b4a50dd5072bf7b145b35f6ed29e566caa1))
+* add wikipedia and arxiv tools ([bef5e20](https://github.com/MarkRagg/GoT/commit/bef5e20d1a682c6da2ee5152497cfbd497dddb47))
+* add wikipedia and arxiv tools ([0c93f80](https://github.com/MarkRagg/GoT/commit/0c93f80a6bb0d352a8447b2bc6cdc8ec7a1c85dd))
+* gaia benchmark added ([02a6e8e](https://github.com/MarkRagg/GoT/commit/02a6e8e16550dd34efaef811542791ad5e876880))
+* gaia benchmark added ([4cf3a01](https://github.com/MarkRagg/GoT/commit/4cf3a015caf88f9aaea3016555d9c1bbb241a387))
+
+### Bug Fixes
+
+* accidentally delete crafting condition ([b787ac3](https://github.com/MarkRagg/GoT/commit/b787ac37e5baa33e0d94fe6cbcd882da7bcafef3))
+* fix names in type arg ([f5738a2](https://github.com/MarkRagg/GoT/commit/f5738a2f521d343c846e9237ea1ecd6632028d81))
+* fix names in type arg ([ea2f8e2](https://github.com/MarkRagg/GoT/commit/ea2f8e25ffb4e2b16f88edf4a5b3e0b67876b72e))
+
+### General maintenance
+
+* add docstring control ([868b3d0](https://github.com/MarkRagg/GoT/commit/868b3d07a2c339ad819dc8b679ffeee14863167d))
+* add explanation of tool needed ([f62ed94](https://github.com/MarkRagg/GoT/commit/f62ed949b8091ee4b820dad0b5b07db5399870a4))
+* add explanation of tool needed ([1045101](https://github.com/MarkRagg/GoT/commit/104510152b31e288879e284d27614c40d1cd4a1a))
+* add method to download mlflow traces ([073be66](https://github.com/MarkRagg/GoT/commit/073be66c12929be6a912874a14ebcb7489cdc89e))
+* add method to download mlflow traces ([5bd0c62](https://github.com/MarkRagg/GoT/commit/5bd0c625b26434fb6e3524ac424be1ce96b2002e))
+* add specific crafter LLM and improve prompt ([ca78485](https://github.com/MarkRagg/GoT/commit/ca7848503e875783b688fc65ff63286436c67192))
+* add specific crafter LLM and improve prompt ([8e8ff33](https://github.com/MarkRagg/GoT/commit/8e8ff331842f12d4340ea5489c9d74b4b350759d))
+* change argument 'type' in 'category' ([89e468d](https://github.com/MarkRagg/GoT/commit/89e468de056c8cfc899e5de1990ca998f6d5d52c))
+* change var name and simplify codes ([67ecf42](https://github.com/MarkRagg/GoT/commit/67ecf42e025968e3742740c7c8b6443a7d6e3b4b))
+* change var name and simplify codes ([b4a4dda](https://github.com/MarkRagg/GoT/commit/b4a4dda80f734ec444575911e281e31dd64771d6))
+* code refinement ([2b4f617](https://github.com/MarkRagg/GoT/commit/2b4f6171715bd334781ddc67e95bd7f062cc31c0))
+* comment pypi release ([ac7289b](https://github.com/MarkRagg/GoT/commit/ac7289b8cc5b6134953c8dbeeb2c40d67e06dba0))
+* create a single benchmark_run for all datasets ([4333141](https://github.com/MarkRagg/GoT/commit/43331413f729730ce3f71ff7f916d19c55b65088))
+* create a single benchmark_run for all datasets ([53344dd](https://github.com/MarkRagg/GoT/commit/53344dd0d4227fd77b3bbccf8f055e5a0ffc7fca))
+* improve evaluation ([345ce80](https://github.com/MarkRagg/GoT/commit/345ce80b33533f88ecf79d90b2e7d24a9d254f89))
+* improve parsing ([2558b00](https://github.com/MarkRagg/GoT/commit/2558b007b45aebd697ac5767291e8d8c96d86312))
+* improve prompt ([677cab6](https://github.com/MarkRagg/GoT/commit/677cab637884271ae7e7ac0ef6d2d3cffc58be0f))
+* improve prompt ([fa71e8f](https://github.com/MarkRagg/GoT/commit/fa71e8fdff52490915fdd7e937786e96550343f5))
+* memorize tool crafted in each CraftingNode ([d2f886f](https://github.com/MarkRagg/GoT/commit/d2f886fbf1d629ce9effd7ec5dc0e441bfd89456))
+* mypy check ([52d5dbb](https://github.com/MarkRagg/GoT/commit/52d5dbbf59caa0e4ea3751d8a19753f87e5f76d5))
+* remove comments ([66811f2](https://github.com/MarkRagg/GoT/commit/66811f2425c8bbbc5eca10d0240984ac94d03c05))
+* remove comments ([c840f47](https://github.com/MarkRagg/GoT/commit/c840f4743490d3dc4a544d0706898f45be169698))
+* remove craft tools in hf formatter ([6dc36a1](https://github.com/MarkRagg/GoT/commit/6dc36a1323693394e27949a59386ddc4d4958efb))
+* remove craft tools in hf formatter ([5569cb6](https://github.com/MarkRagg/GoT/commit/5569cb605f452347588f29c8416183488fca91b2))
+* simplify codes ([626007f](https://github.com/MarkRagg/GoT/commit/626007f61628052c0680d0faf38fefff10e7e430))
+* simplify codes ([929ebd0](https://github.com/MarkRagg/GoT/commit/929ebd036f103aad615b2192274fcbb744b80b7c))
+* uncomment pypi config ([6bfc5c4](https://github.com/MarkRagg/GoT/commit/6bfc5c437e7ff4087a2f6e1bdde2825923169786))
+
+### Style improvements
+
+* change system folder architecture ([3a87d0f](https://github.com/MarkRagg/GoT/commit/3a87d0f838206b2680dac1295453a02d834ad8d2))
+* change system folder architecture ([f0cec82](https://github.com/MarkRagg/GoT/commit/f0cec829dd2559beae94b771245869e7df0ea768))
+* change var names ([0468e3e](https://github.com/MarkRagg/GoT/commit/0468e3ee1cc319e7caf66d0123ccb86e0c0ada5d))
+* ruff format ([b417846](https://github.com/MarkRagg/GoT/commit/b417846230ca4845db12ab4fac65293c76008231))
+* ruff format + ignores arxiv, wikipedia stubs ([def5e3c](https://github.com/MarkRagg/GoT/commit/def5e3c0e6f3d468a04b01ce1b4e0aa2d1e4892a))
+* ruff format + ignores arxiv, wikipedia stubs ([fab5a9c](https://github.com/MarkRagg/GoT/commit/fab5a9cb58b91fa1396fb191f13e619ff78a3253))
+
 ## [1.1.0](https://github.com/MarkRagg/GoT/compare/1.0.0...1.1.0) (2026-05-22)
 
 ### Features
