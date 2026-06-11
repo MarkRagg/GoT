@@ -17,7 +17,10 @@ def parse_response(res) -> str:
     :param res: the MessagesState
     :return: The response in string
     """
-    return res["messages"][-1].content
+    response = res["messages"][-1].text
+    if response is None or response == "":
+        response = res["messages"][-1].content
+    return response
 
 
 def parse_tool_list(response: str) -> list[str]:
@@ -83,8 +86,14 @@ def parse_response_for_tool_node(response: MessagesState) -> Response:
     if isinstance(structured_response, Response):
         return structured_response
     elif score_res is not None:
-        data = json.loads(score_res)
-        return Response.model_validate(data)
+        try:
+            data = json.loads(score_res)
+            return Response.model_validate(data)
+        except json.JSONDecodeError:
+            return Response(
+                response=score_res,
+                explanation="",
+            )
     else:
         return Response(
             response="Failed to parse response",
@@ -107,6 +116,47 @@ def extract_tool_used(response: MessagesState) -> list[str]:
             for tool_call in msg.tool_calls:
                 tools_used.append(tool_call["name"])
     return tools_used
+
+
+def extract_function_signature(tool_crafted: dict) -> str:
+    """
+    Extract name and arguments from function string.
+    """
+    func_str = tool_crafted.get("tool_function", "")
+    match = re.search(r"def (\w+)\(([^)]*)\)", func_str)
+    if not match:
+        return ""
+
+    func_name = match.group(1)
+    args = match.group(2)
+
+    clean_args = ", ".join(
+        arg.split("=")[0].strip()
+        for arg in args.split(",")
+        if arg.strip() and arg.strip() != "self"
+    )
+
+    return f"{func_name}({clean_args})"
+
+
+def extract_tools_crafted(response: MessagesState) -> list[str]:
+    """
+    Extract the tools that LLM has crafted.
+
+    :param response: The LLM response
+    :type response: MessagesState
+    :return: The list of tools crafted
+    :rtype: list[str]
+    """
+    tools_crafted = []
+    for msg in response.get("messages", []):
+        if isinstance(msg, AIMessage):
+            for tool_call in msg.tool_calls:
+                tool_crafted = tool_call["args"]
+                signature = extract_function_signature(tool_crafted)
+                if signature != "":
+                    tools_crafted.append(signature)
+    return tools_crafted
 
 
 def remove_tools_from_list(tool_list, tools_to_remove):
@@ -179,6 +229,30 @@ def symbolic_equal(a, b):
         return simplify(sympify(a) - sympify(b)) == 0
     except Exception:
         return False
+
+
+def extract_answer_from_response(response: str) -> str:
+    boxed_match = re.search(r"\\boxed\{(.*)\}", response)
+    if boxed_match:
+        return boxed_match.group(1).strip()
+
+    boxed_match_alt = re.search(r"boxed\{(.*)\}", response)
+    if boxed_match_alt:
+        return boxed_match_alt.group(1).strip()
+
+    answer_match = re.search(r"Answer:\s*(.*)", response, re.IGNORECASE)
+    if answer_match:
+        return answer_match.group(1).strip()
+
+    clean_response = response.strip()
+    if not clean_response:
+        return "N/A"
+
+    try:
+        float(clean_response)
+        return clean_response
+    except ValueError:
+        return "N/A"
 
 
 def print_benchmark_result(results: dict, task_name: str, filter: str) -> None:

@@ -51,26 +51,26 @@ class LLM:
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 temperature=1.0,  # Gemini 3.0+ defaults to 1.0
             )
-            self.remoteLLMResponseFormat = ChatGoogleGenerativeAI(
+            self.remoteLLMReasoning = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 temperature=1.0,  # Gemini 3.0+ defaults to 1.0
             )
             self.remoteLLMCrafter = ChatGoogleGenerativeAI(
-                model="gemini-3-flash-preview",
+                model="gemini-2.5-flash",
                 api_key=os.environ.get("GEMINI_API_KEY"),
                 temperature=1.0,  # Gemini 3.0+ defaults to 1.0
             )
-            self.remoteLLMScoreFormat = ChatGoogleGenerativeAI(
+            self.remoteLLMEvaluator = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
                 api_key=os.environ.get("GEMINI_API_KEY"),
-                temperature=0.7,  # Gemini 3.0+ defaults to 1.0
+                temperature=1.0,  # Gemini 3.0+ defaults to 1.0
             )
 
             self.remoteLLMs = {
                 "remote_standard": self.remoteLLMStandard,
-                "remote_response_format": self.remoteLLMResponseFormat,
-                "remote_score_format": self.remoteLLMScoreFormat,
+                "remote_response_format": self.remoteLLMReasoning,
+                "remote_score_format": self.remoteLLMEvaluator,
                 "remote_crafter": self.remoteLLMCrafter,
             }
 

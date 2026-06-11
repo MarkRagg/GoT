@@ -83,6 +83,13 @@ def craft_tool(tool_function: str) -> str:
 
     func = functions[0]
 
+    try:
+        docstring = ast.get_docstring(func)
+        if not docstring or not docstring.strip():
+            return "Error: missing docstring. A description of the function is mandatory for Gemini tools."
+    except TypeError:
+        return "Error: missing docstring. A description of the function is mandatory for Gemini tools."
+
     for arg in func.args.args:
         if arg.annotation is None:
             return f"Error: missing type annotation for '{arg.arg}'"
