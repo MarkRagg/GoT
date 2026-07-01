@@ -1,162 +1,141 @@
-# Python project template
+# Agentic GoT
 
-A simple template of Python projects, with a rigid file structure, and predisposition for unit testing and release on PyPi.
+Agentic GoT (**Graph of Thought**) is a LangChain / LangGraph based reasoning agent that solves problems by building and traversing a graph of intermediate reasoning, tool-call, scoring, and backtracking nodes, instead of a single linear chain-of-thought. It ships with:
 
-## Relevant features
+- A **runtime reasoning graph** (`GoT/core/runtime_graph.py`, `GoT/core/graph_model.py`) with typed nodes (`GoalNode`, `ReasoningNode`, `ToolNode`, `TestNode`, `CraftingNode`, `BacktrackNode`, `CompletitionNode`, `ResponseNode`) and Mermaid export for visualizing a run.
+- A pluggable **tool belt**: arithmetic (`agent_tools/math_tool.py`), web/knowledge lookup via Wikipedia and arXiv (`agent_tools/web_tool.py`), a sandboxed Python executor, and a **tool-crafting tool** that lets the agent write and persist brand-new tools for itself at runtime (`agent_tools/craft_tool.py`).
+- **Benchmark harnesses** for GSM8K, GPQA (diamond), Hendrycks MATH, and GAIA, wired into [`lm-eval-harness`](https://github.com/EleutherAI/lm-evaluation-harness) (`GoT/experiments/`), so the graph agent (and a plain baseline agent) can be scored automatically.
+- **MLflow** autologging for OpenAI/Gemini/LangChain calls, so every run is traced and inspectable.
 
-- All your project code into a single main package (`GoT/`)
-- All your project tests into a single test package (`test/`)
-- Unit testing support via [`unittest`](https://docs.python.org/3/library/unittest.html)
-- Automatic testing on all branches via GitHub Actions
-- Semi-automatic versioning via Git
-- Packaging support via [`setuptools`](https://setuptools.pypa.io/en/latest/setuptools.html)
-- Automatic release on [PyPi](https://pypi.org/) via GitHub Actions and [`semantic-release`](https://semantic-release.gitbook.io)
-- Automatic dependencies updates via [Renovate](https://docs.renovatebot.com/)
+## Requirements
+
+| Tool | Version | Notes |
+|---|---|---|
+| Python | `>=3.10, <3.14` | CI tests on 3.10–3.13, on Ubuntu/Windows/macOS |
+| [Poetry](https://python-poetry.org/) | `^2.2` | dependency & venv management |
+| [Ollama](https://ollama.com/) | any recent | optional, only needed for running local Ollama models|
+
+## Quick start
+
+```bash
+# 1. Clone
+git clone https://github.com/MarkRagg/GoT.git
+cd GoT
+
+# 2. Install Poetry (pinned version, isolated from your system Python)
+pip install -r requirements.txt
+
+# 3. Install project + dev dependencies (creates an in-project .venv, see poetry.toml)
+poetry install
+
+# 4. Configure environment variables (see below)
+cp .env.example .env   # if present — otherwise just create .env, see next section
+$EDITOR .env
+
+# 5. Run the test suite to confirm everything is wired correctly
+poetry run poe test
+
+# 6. Run the agent on a custom prompt in graph mode
+poetry run python -m GoT --benchmark custom --mode graph --prompt "What is the square root of 144, then look up who proved it?"
+```
+
+> Tip: run `poetry shell` once to activate the virtualenv, so you can drop the `poetry run` prefix for the rest of the session.
+
+## Environment variables
+
+GoT loads environment variables from a `.env` file at import time via `python-dotenv` (see `GoT/__init__.py` and `GoT/core/llm.py`). Create a `.env` file in the repository root:
+
+```dotenv
+# Required — Gemini is the default remote LLM backend for every agent role
+# (standard reasoning, structured/graph reasoning, tool crafting, and scoring).
+# Get a key at https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=your-gemini-api-key
+
+# Required only if you run benchmarks that pull gated Hugging Face datasets
+# (currently GPQA and GAIA). Get a token at https://huggingface.co/settings/tokens
+# and make sure your HF account has accepted the dataset's access terms.
+HF_TOKEN=your-huggingface-token
+```
+
+| Variable | Required | Used by | Purpose |
+|---|---|---|---|
+| `GEMINI_API_KEY` | Yes (for any Gemini-backed run — the default) | `GoT/core/llm.py` | Authenticates the four `ChatGoogleGenerativeAI` roles (`remote_standard`, `remote_response_format`, `remote_score_format`, `remote_crafter`) that power reasoning, response formatting, scoring, and tool crafting. |
+| `HF_TOKEN` | Only for `--benchmark gpqa` / `--benchmark gaia` | `GoT/experiments/hf_formatter.py` | Downloads gated benchmark datasets from the Hugging Face Hub. `gsm8k` and `hendrycks_math` do not require it. |
+
+### Optional / no setup needed
+
+- **Local Ollama model** — `GoT/core/llm.py` also instantiates an `ollamaLLM` pointed at `http://localhost:11434/v1` with model `ministral-3:8b`, using the dummy API key `"dummy"` (Ollama's OpenAI-compatible endpoint doesn't check it). This path is only exercised if your own code selects it; it's not required for the default Gemini-backed CLI flows. If you want to use it: install [Ollama](https://ollama.com/download), then run `ollama pull ministral-3:8b` and make sure `ollama serve` is running before invoking GoT.
+- **MLflow** — tracing is enabled automatically (`mlflow.set_experiment("marcoraggini-experiment")` plus autolog for OpenAI/Gemini/LangChain) and writes to a local `./mlruns` directory by default. Point it at a remote tracking server instead by exporting `MLFLOW_TRACKING_URI` before running GoT — no code changes needed.
+- `.env` is already covered by `.gitignore` — never commit real API keys.
+
+## Usage
+
+The package entry point (`GoT/__main__.py` → `GoT.main()`) parses CLI args via `GoT/cli/parse_args.py`:
+
+```bash
+poetry run python -m GoT --benchmark <gsm8k|gpqa|hendrycks_math|gaia|custom> --mode <graph|standard> [options]
+```
+
+| Flag | Required | Values | Description |
+|---|---|---|---|
+| `--benchmark` | Yes | `gsm8k`, `gpqa`, `hendrycks_math`, `gaia`, `custom` | Which benchmark (or ad-hoc prompt) to run. |
+| `--mode` | Yes | `graph`, `standard` | `graph` runs the full Graph-of-Thought reasoning pipeline; `standard` runs a single-pass baseline agent. |
+| `--prompt` | Only for `custom` | free text | The prompt to run when `--benchmark custom` is selected. |
+| `--max_run` | No (default `1`) | int | Number of benchmark samples/iterations to run. |
+| `--category` | No (default `algebra`) | `algebra`, `counting_and_probability`, `geometry`, `intermediate_algebra`, `number_theory`, `precalculus`, `prealgebra` | Math subject filter, only used with `--benchmark hendrycks_math`. |
+
+Examples:
+
+```bash
+# Ad-hoc question, full graph reasoning
+poetry run python -m GoT --benchmark custom --mode graph --prompt "Explain and solve: integral of x^2 dx from 0 to 3"
+
+# Baseline (non-graph) agent on 10 GSM8K problems
+poetry run python -m GoT --benchmark gsm8k --mode standard --max_run 10
+
+# Graph agent on Hendrycks MATH, geometry category
+poetry run python -m GoT --benchmark hendrycks_math --mode graph --category geometry --max_run 5
+```
+
+Results are written as JSON in the working directory (e.g. `graph_benchmark_results.json`, `test_benchmark_results.json`, `<model_name>_eval_results.json`), and every run is traced in MLflow.
+
+## Development
+
+```bash
+poetry install                    # install runtime + dev dependencies
+
+poetry run poe test               # run the pytest suite
+poetry run poe coverage           # run tests with coverage
+poetry run poe coverage-report    # print coverage summary
+poetry run poe coverage-html      # generate an HTML coverage report (htmlcov/)
+
+poetry run poe static-checks      # ruff check + mypy
+poetry run poe format             # auto-format with ruff
+poetry run poe format-check       # check formatting without modifying files
+poetry run poe compile            # byte-compile the package and tests (syntax check)
+```
+
+CI (`.github/workflows/check.yml`) runs the same static checks, formatting check, and coverage on every push/PR, then runs the test suite across Python 3.10–3.13 on Ubuntu, Windows, and macOS.
 
 ## Project structure
 
-Overview:
-```bash
-<root directory>
-├── GoT/             # main package (should be named after your project)
-│   ├── __init__.py         # python package marker
-│   └── __main__.py         # application entry point
-├── tests/                  # test package (should contain unit tests)
-├── .github/                # configuration of GitHub CI
-│   └── workflows/          # configuration of GitHub Workflows
-│       ├── check.yml       # runs tests on multiple OS and versions of Python
-│       └── deploy.yml      # if check succeeds, and the current branch is one of {main, master}, triggers automatic releas on PyPi
-├── LICENSE                 # license file (Apache 2.0 by default)
-├── pyproject.toml          # project configuration file as prescribed by Poetry
-├── renovate.json           # configuration of Renovate bot, for automatic dependency updates
-├── requirements.txt        # only declares a dependency on Poetry. DO NOT EDIT THIS FILE
-└── release.config.js       # script to release on PyPi, and GitHub via semantic-release
+```
+GoT/
+├── GoT/
+│   ├── __main__.py            # `python -m GoT` entry point
+│   ├── cli/parse_args.py      # argparse CLI definition
+│   ├── core/
+│   │   ├── llm.py             # LLM roles (Gemini remote + local Ollama), tool wiring
+│   │   ├── graph_model.py     # LangGraph graph definition / orchestration
+│   │   └── runtime_graph.py   # Reasoning-graph node types + Mermaid export
+│   ├── agent_tools/           # math_tool, web_tool (Wikipedia/arXiv), craft_tool, runtime_graph_tool, ai_tool (crafted tools land here)
+│   ├── experiments/           # lm-eval-harness wrappers + per-benchmark dataset formatters
+│   └── utils/utils.py         # answer parsing/normalization helpers
+├── tests/                     # unit tests (pytest)
+├── pyproject.toml             # Poetry config, dependencies, poe tasks
+└── .github/workflows/         # CI (check.yml) and release (deploy.yml)
 ```
 
-## TODO-list for template usage
+## License
 
-1. Use this template to create a new GitHub repository, say `GoT`
-    - this name will also be used to identify the package on PyPi
-        + so, we suggest choosing a name which has not been used on PyPi, yet
-        + we also suggest choosing a name which is a valid Python package name (i.e. `using_snake_case`)
-
-2. Clone the `GoT` repository
-
-3. Open a shell into your local `GoT` directory and run
-    ```bash
-    ./rename-template.sh GoT
-    ```
-    
-    This will coherently rename the template's project name with the one chosen by you (i.e. `GoT`, in this example)
-
-    * __Remark__: this step is now automatic thanks to the `init.yml` workflow which is triggered when using this template to create a new repository
-
-4. Commit & push
-
-5. Ensure you like the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0.html). If you don't, change the content of the `LICENSE` file
-
-6. Ensure the versions-range of Python reported in `pyproject.toml` fits the versions you want to support
-    + currently defaults to `>= 3.9`
-    + if you change this, please also change the versions of Python tests should be run on in CI, by looking the file `.github/workflows/check.yml`
-
-7. Check the Python version and OS tests should be run on in CI, by looking the file `.github/workflows/check.yml`
-
-8. Add your runtime, development, and build dependencies to `pyproject.toml`
-
-9. Check the other metadata in `pyproject.toml`
-
-10. Change the assignee for pull-requests for automatic dependency updates by editing `renovate.json`
-    + currently defaults to @gciatto
-
-11. Add your `PYPI_TOKEN` token as secrets of the GitHub repository
-    - this may require you to register on PyPi first
-
-12. Generate a GitHub token and add it as a secret of the GitHub repository, named `RELEASE_TOKEN`
-    - cf. <https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens#creating-a-personal-access-token-classic>
-    - the token must allow pushing to the repository
-
-13. Put your main (resp. test) code in `GoT/` (resp. `test/`)
-
-## How to do stuff
-
-### Restore dev dependencies
-
-1. Install Poetry if you don't have it yet
-    ```bash
-    pip install -r requirements.txt
-    ```
-
-2. Install the project's dependencies
-    ```bash
-    poetry install
-    ```
-
-### Run Tests
-  Execute the test suite using `pytest`:
-  ```bash
-  poetry run poe test
-  ```
-
-### Run Tests with Coverage
-  Execute the test suite with coverage reporting:
-  ```bash
-  poetry run poe coverage
-  ```
-  and generate a report with `poe coverage-report` or `poe coverage-html`
-
-
-### Run Static Checks
-  Perform static code analysis using both `mypy` and `ruff`:
-  ```bash
-  poetry run poe static-checks
-  ```
-
-### Format Code
-  Format your code using `ruff`:
-  ```bash
-  poetry run poe format
-  ```
-
-> Note: you can enter a Poetry shell via `poetry shell` to avoid prefixing commands with `poetry run`.
-
-> Tests are automatically run in CI, on all pushes on all branches.
-> There, tests are executed on multiple OS (Win, Mac, Ubuntu) and on multiple Python versions.
-
-### Run your code as an application
-
-This will execute the `__main__.py` file in the `GoT` package:
-```bash
-poetry run python -m GoT
-```
-
-the latter is possible because of the script defined in the `pyproject.toml` file.
-
-### Release a new version on PyPi
-
-New versions are automatically released on PyPi via GitHub Actions, when a push is made on the `main` or `master` branch.
-
-The version number is updated automatically by the `semantic-release` tool, which uses the commit messages to infer the type of the release (major, minor, patch).
-
-It is paramount that the commit messages follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) specification,
-in order for `semantic-release` to compute version numbers correctly.
-
-## Automatic updates of dependencies (via Renovate)
-
-The project is configured to use [Renovate](https://docs.renovatebot.com/) to automatically open pull-requests
-to update dependencies declared in `pyproject.toml`.
-
-By default, Renovate will assign such pull-requests to the user who created the repository from this template.
-
-If the project has tests (which is the case for this template), Renovate will only merge such pull-requests
-if all tests pass.
-
-When some test fails, Renovate will leave a comment on the pull-request, so that you can fix the issue manually.
-
-To make Renovate work, you need to enable it for your repository.
-To do so, please follow the instruction at <https://docs.renovatebot.com/getting-started/installing-onboarding/#hosted-githubcom-app>
-
-Finally, please remember to enable PR auto-merging in your repository settings, otherwise Renovate will not be able to merge
-the pull-requests it opens, even if all tests pass.
-To do so, please follow the instructions available [here](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/managing-auto-merge-for-pull-requests-in-your-repository#managing-auto-merge).
-
-> Notice that the combination between Renovate, and Semantic Release may lead to a number of releases being created automatically.
+See [`LICENSE`](./LICENSE).
