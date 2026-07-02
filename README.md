@@ -136,6 +136,25 @@ GoT/
 └── .github/workflows/         # CI (check.yml) and release (deploy.yml)
 ```
 
+## Experiments
+
+The experiments reported in the paper were run with the following command, varying only the `--category` flag across the Hendrycks MATH subject areas:
+
+```bash
+poetry run python -m GoT --benchmark hendrycks_math --mode graph --max_run 50 --category algebra
+```
+
+- `--mode graph` was used to produce the Agentic GoT results.
+- `--mode standard` was used to produce the Zero-Shot CoT baseline results, keeping all other flags identical.
+- `--category` was swapped in turn for each of the supported values (`algebra`, `counting_and_probability`, `geometry`, `intermediate_algebra`, `number_theory`, `precalculus`) depending on which subject was being evaluated.
+
+By default, all four LLM roles use `gemini-2.5-flash`. To use a different model (in the experiments we use `gemini-2.5-flash`, `gemini-2.5-flash-lite` and `gemini-3.1-flash-lite`), edit `GoT/core/llm.py` and change the model name in the following four variables:
+
+- `remoteLLMStandard`
+- `remoteLLMReasoning`
+- `remoteLLMCrafter`
+- `remoteLLMEvaluator`
+
 ## License
 
 See [`LICENSE`](./LICENSE).
